@@ -196,4 +196,3 @@ Developed by a student at **FERIT** (Faculty of Electrical Engineering, Computin
 ## License
 
 MIT — free to use, modify, and distribute.
-

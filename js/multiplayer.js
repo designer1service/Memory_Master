@@ -12,15 +12,15 @@ import {
   query, where, getDocs,
 } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
 
-import { db }                                        from './firebase.js?v=1778174479';
-import { getState, setState, resetMultiplayerState } from './state_manager.js?v=1778174479';
-import { generateBoard }                             from './game_logic.js?v=1778174479';
+import { db }                                        from './firebase.js?v=1778189194';
+import { getState, setState, resetMultiplayerState } from './state_manager.js?v=1778189194';
+import { generateBoard }                             from './game_logic.js?v=1778189194';
 import {
   showScreen, showToast, updateHPBar,
   updateTurnIndicator, showAbilityToast,
   showResults, showCoinFlip, renderAbilityLog,
-} from './ui_manager.js?v=1778174479';
-import { updateMultiplayerRating }                   from './dashboard.js?v=1778174479';
+} from './ui_manager.js?v=1778189194';
+import { updateMultiplayerRating }                   from './dashboard.js?v=1778189194';
 
 // ── Ability definitions ────────────────────────────────────
 const ABILITIES = ['damage','heal','extra_turn','reveal_card'];
@@ -96,7 +96,7 @@ export async function createRoom() {
 
   setState('multiplayer', { matchId, roomCode: code, isHost: true, playerId: user.uid });
 
-  const { showRoomCode } = await import('./ui_manager.js?v=1778174479');
+  const { showRoomCode } = await import('./ui_manager.js?v=1778189194');
   showRoomCode(code);
   subscribeToMatch(matchId);
   startHostPolling(matchId, user.uid);
@@ -138,28 +138,22 @@ export async function joinRoom(code) {
   const usnap    = await getDoc(doc(db, 'users', user.uid));
   const username = usnap.data()?.username || user.email?.split('@')[0] || 'Player';
 
-  // Set game active + set first turn deadline (30s from now)
+  // Set game active + coin flip + first turn — all in ONE write to avoid race conditions
+  const coinWinner = Math.random() < 0.5 ? mdata.player1.uid : user.uid;
   const deadlineMs = Date.now() + 30_000;
   await updateDoc(matchRef, {
-    status:  'active',
-    player2: { uid: user.uid, username, hp: 100 },
-    last_action_timestamp: serverTimestamp(),
+    status:        'active',
+    player2:       { uid: user.uid, username, hp: 100 },
+    current_turn:  coinWinner,
+    first_turn:    coinWinner,
     turn_deadline: deadlineMs,
+    last_action_timestamp: serverTimestamp(),
   });
 
   // Update index
   try {
     await updateDoc(doc(db, 'multiplayer_index', matchId), { status: 'active' });
   } catch(e) { /* non-critical */ }
-
-  // Randomize first turn with coin flip
-  const coinWinner = Math.random() < 0.5 ? mdata.player1.uid : user.uid;
-  const deadlineMs2 = Date.now() + 30_000;
-  await updateDoc(matchRef, {
-    current_turn:  coinWinner,
-    first_turn:    coinWinner,
-    turn_deadline: deadlineMs2,
-  });
 
   setState('multiplayer', {
     matchId,
@@ -645,8 +639,8 @@ function stopTurnCountdown() {
 
 export function startTurnCountdown(currentTurnUid, deadlineMs, matchId) {
   stopTurnCountdown();
-  // If deadline is missing or already passed by >2s, ignore
-  if (!deadlineMs || (Date.now() - deadlineMs) > 60_000) return;
+  // If deadline is missing or already passed by >2s, ignore (don't start countdown for stale deadlines)
+  if (!deadlineMs || (deadlineMs - Date.now()) < -2_000) return;
 
   const uid = getState('multiplayer').playerId;
 
