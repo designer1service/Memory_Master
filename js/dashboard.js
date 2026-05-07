@@ -9,9 +9,9 @@ import {
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
 
-import { db }                             from './firebase.js?v=1778191567';
-import { getState, setState }             from './state_manager.js?v=1778191567';
-import { renderStats, renderLeaderboard, showToast } from './ui_manager.js?v=1778191567';
+import { db }                             from './firebase.js?v=1778192570';
+import { getState, setState }             from './state_manager.js?v=1778192570';
+import { renderStats, renderLeaderboard, showToast } from './ui_manager.js?v=1778192570';
 
 // ── Load full dashboard data ───────────────────────────────
 
@@ -68,7 +68,7 @@ async function loadLeaderboard() {
     }));
 
     const currentUid = getState('user')?.uid;
-    const { renderLeaderboard: render } = await import('./ui_manager.js?v=1778191567');
+    const { renderLeaderboard: render } = await import('./ui_manager.js?v=1778192570');
     render(entries, currentUid);
 
     if (window.lucide) window.lucide.createIcons();

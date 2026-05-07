@@ -12,15 +12,15 @@ import {
   query, where, getDocs,
 } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
 
-import { db, auth }                                  from './firebase.js?v=1778191567';
-import { getState, setState, resetMultiplayerState } from './state_manager.js?v=1778191567';
-import { generateBoard }                             from './game_logic.js?v=1778191567';
+import { db, auth }                                  from './firebase.js?v=1778192570';
+import { getState, setState, resetMultiplayerState } from './state_manager.js?v=1778192570';
+import { generateBoard }                             from './game_logic.js?v=1778192570';
 import {
   showScreen, showToast, updateHPBar,
   updateTurnIndicator, showAbilityToast,
   showResults, showCoinFlip, renderAbilityLog,
-} from './ui_manager.js?v=1778191567';
-import { updateMultiplayerRating }                   from './dashboard.js?v=1778191567';
+} from './ui_manager.js?v=1778192570';
+import { updateMultiplayerRating }                   from './dashboard.js?v=1778192570';
 
 // ── Ability definitions ────────────────────────────────────
 const ABILITIES = ['damage','heal','extra_turn','reveal_card'];
@@ -96,7 +96,7 @@ export async function createRoom() {
 
   setState('multiplayer', { matchId, roomCode: code, isHost: true, playerId: user.uid });
 
-  const { showRoomCode } = await import('./ui_manager.js?v=1778191567');
+  const { showRoomCode } = await import('./ui_manager.js?v=1778192570');
   showRoomCode(code);
   subscribeToMatch(matchId);
 }
@@ -171,6 +171,7 @@ export async function joinRoom(code) {
   const oppName   = mdata.player1.username || 'Opponent';
   const iGoFirst  = coinWinner === user.uid;
 
+  _coinFlipShown = true; // prevent handleMatchUpdate from showing coin flip again
   renderMultiplayerBoard(freshData, user.uid, false);
   showScreen('multiplayer');
   await showCoinFlip(myName, oppName, iGoFirst);
@@ -426,7 +427,16 @@ async function resolveMPMatch(matchRef, data, board, flipped, uid) {
   const [i1, i2] = flipped;
   const c1 = board[i1];
   const c2 = board[i2];
+
+  // Guard: uid must match one of the two players, otherwise abort
   const isP1 = data.player1.uid === uid;
+  const isP2 = data.player2.uid === uid;
+  if (!isP1 && !isP2) {
+    console.warn('[resolveMPMatch] uid does not match either player, aborting', uid);
+    _localShowing.clear();
+    _mpLocked = false;
+    return;
+  }
 
   if (c1.icon === c2.icon) {
     // Match!
@@ -485,33 +495,41 @@ async function resolveMPMatch(matchRef, data, board, flipped, uid) {
     if (isP1) p1.player_moves = (data.player1_moves || 0) + 1;
     else      p2.player_moves = (data.player2_moves || 0) + 1;
 
-    const opponent = isP1 ? p2 : p1;
+    // Always use explicit uid references — never rely on isP1 for winner assignment
+    const myUid  = uid;
+    const oppUid = isP1 ? data.player2.uid : data.player1.uid;
     const self     = isP1 ? p1 : p2;
-    let   status   = 'active';
-    let   winner   = null;
+    const opponent = isP1 ? p2 : p1;
 
-    if (opponent.hp <= 0) {
-      // Opponent ran out of HP
+    let status = 'active';
+    let winner = null;
+
+    if (opponent.hp <= 0 && self.hp <= 0) {
+      // Both at 0 HP simultaneously — treat as draw
       status = 'finished';
-      winner = uid;
+      winner = 'draw';
+    } else if (opponent.hp <= 0) {
+      // Opponent out of HP — I win
+      status = 'finished';
+      winner = myUid;
+    } else if (self.hp <= 0) {
+      // I ran out of HP (shouldn't happen in match branch, but guard it)
+      status = 'finished';
+      winner = oppUid;
     } else if (newPairs >= data.total_pairs) {
-      // All pairs found — decide by pairs count, then HP tie-breaker
+      // All pairs found — both players alive, decide by pairs count
       const myPairs  = (data.pairs_found_p1 || 0) + (isP1 ? 1 : 0);
       const oppPairs = (data.pairs_found_p2 || 0) + (isP1 ? 0 : 1);
       if (myPairs > oppPairs) {
-        status = 'finished'; winner = uid;
+        status = 'finished'; winner = myUid;
       } else if (oppPairs > myPairs) {
-        status = 'finished'; winner = isP1 ? data.player2.uid : data.player1.uid;
+        status = 'finished'; winner = oppUid;
       } else {
-        // Equal pairs — HP tie-breaker, or draw if HP also equal
+        // Equal pairs — HP tie-breaker
         status = 'finished';
-        if (self.hp > opponent.hp) {
-          winner = uid;
-        } else if (opponent.hp > self.hp) {
-          winner = isP1 ? data.player2.uid : data.player1.uid;
-        } else {
-          winner = 'draw'; // exact same pairs AND same HP
-        }
+        if (self.hp > opponent.hp)      winner = myUid;
+        else if (opponent.hp > self.hp) winner = oppUid;
+        else                            winner = 'draw';
       }
     }
     const deadlineMs = status === 'active' ? Date.now() + 30_000 : null;
@@ -575,10 +593,12 @@ async function resolveMPMatch(matchRef, data, board, flipped, uid) {
     if (isP1) p1.player_moves = (data.player1_moves || 0) + 1;
     else      p2.player_moves = (data.player2_moves || 0) + 1;
 
-    const nextTurn   = isP1 ? data.player2.uid : data.player1.uid;
+    const myUid2  = uid;
+    const oppUid2 = isP1 ? data.player2.uid : data.player1.uid;
+    const nextTurn   = oppUid2;
     const selfHp     = isP1 ? p1.hp : p2.hp;
     const status     = selfHp <= 0 ? 'finished' : 'active';
-    const winner     = selfHp <= 0 ? nextTurn : null;
+    const winner     = selfHp <= 0 ? oppUid2 : null; // I lost HP, opponent wins
     const deadlineMs = status === 'active' ? Date.now() + 30_000 : null;
 
     await updateDoc(matchRef, {
