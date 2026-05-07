@@ -12,15 +12,15 @@ import {
   query, where, getDocs,
 } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
 
-import { db }                                        from './firebase.js?v=1778190302';
-import { getState, setState, resetMultiplayerState } from './state_manager.js?v=1778190302';
-import { generateBoard }                             from './game_logic.js?v=1778190302';
+import { db, auth }                                  from './firebase.js?v=1778191105';
+import { getState, setState, resetMultiplayerState } from './state_manager.js?v=1778191105';
+import { generateBoard }                             from './game_logic.js?v=1778191105';
 import {
   showScreen, showToast, updateHPBar,
   updateTurnIndicator, showAbilityToast,
   showResults, showCoinFlip, renderAbilityLog,
-} from './ui_manager.js?v=1778190302';
-import { updateMultiplayerRating }                   from './dashboard.js?v=1778190302';
+} from './ui_manager.js?v=1778191105';
+import { updateMultiplayerRating }                   from './dashboard.js?v=1778191105';
 
 // ── Ability definitions ────────────────────────────────────
 const ABILITIES = ['damage','heal','extra_turn','reveal_card'];
@@ -96,7 +96,7 @@ export async function createRoom() {
 
   setState('multiplayer', { matchId, roomCode: code, isHost: true, playerId: user.uid });
 
-  const { showRoomCode } = await import('./ui_manager.js?v=1778190302');
+  const { showRoomCode } = await import('./ui_manager.js?v=1778191105');
   showRoomCode(code);
   subscribeToMatch(matchId);
 }
@@ -217,7 +217,8 @@ export function setLastSeen(turn, deadline) {
 
 function handleMatchUpdate(data, matchId) {
   const mp   = getState('multiplayer');
-  const uid  = mp.playerId;
+  const uid  = mp.playerId || auth.currentUser?.uid;
+  if (!uid) return;
   const isP1 = data.player1?.uid === uid;
 
   // Transition waiting → active (host side — onSnapshot fires when player2 joins)
@@ -354,7 +355,8 @@ let _localShowing  = new Set(); // indices clicked locally this turn (active pla
 
 async function onMPCardClick(idx) {
   const mp  = getState('multiplayer');
-  const uid = mp.playerId;
+  const uid = mp.playerId || auth.currentUser?.uid;
+  if (!uid) return;
   if (!mp.matchId) return;
   if (_mpLocked) return;
 
@@ -496,6 +498,11 @@ async function resolveMPMatch(matchRef, data, board, flipped, uid) {
       // All pairs found — decide by pairs count, then HP tie-breaker
       const myPairs  = (data.pairs_found_p1 || 0) + (isP1 ? 1 : 0);
       const oppPairs = (data.pairs_found_p2 || 0) + (isP1 ? 0 : 1);
+      console.log('[WIN CHECK] isP1:', isP1, 'uid:', uid,
+        '| p1uid:', data.player1.uid, 'p2uid:', data.player2.uid,
+        '| myPairs:', myPairs, 'oppPairs:', oppPairs,
+        '| raw p1:', data.pairs_found_p1, 'raw p2:', data.pairs_found_p2,
+        '| myHp:', self.hp, 'oppHp:', opponent.hp);
       if (myPairs > oppPairs) {
         status = 'finished'; winner = uid;
       } else if (oppPairs > myPairs) {
@@ -722,6 +729,7 @@ function handleMatchEnd(data, uid) {
   // Per-player stats
   const myMoves  = isP1 ? (data.player1_moves || 0) : (data.player2_moves || 0);
   const myPairs  = isP1 ? (data.pairs_found_p1 || 0) : (data.pairs_found_p2 || 0);
+  const oppPairs = isP1 ? (data.pairs_found_p2 || 0) : (data.pairs_found_p1 || 0);
   const myHp     = isP1 ? (data.player1?.hp ?? 0) : (data.player2?.hp ?? 0);
   const oppHp    = isP1 ? (data.player2?.hp ?? 0) : (data.player1?.hp ?? 0);
   const hpDiff   = myHp - oppHp;
@@ -732,6 +740,7 @@ function handleMatchEnd(data, uid) {
     time:       elapsedSec,
     moves:      myMoves,
     pairs:      myPairs,
+    oppPairs,
     totalPairs: data.total_pairs || 8,
     hpDiff,
     isGuest:    false,

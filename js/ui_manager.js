@@ -3,7 +3,7 @@
 // Screen routing, toasts, animations, theme, particles
 // ═══════════════════════════════════════════════════════════
 
-import { getState, setState } from './state_manager.js?v=1778189194';
+import { getState, setState } from './state_manager.js?v=1778191105';
 
 // ── Screen Management ──────────────────────────────────────
 
@@ -250,7 +250,7 @@ export function renderAbilityLog(entries) {
 
 // ── Results Screen ─────────────────────────────────────────
 
-export function showResults({ win, mode, time, moves, pairs, totalPairs, hpDiff, isGuest, isNewBest }) {
+export function showResults({ win, mode, time, moves, pairs, oppPairs, totalPairs, hpDiff, isGuest, isNewBest }) {
   const fmt = (s) => {
     const m = Math.floor(s / 60);
     const sec = s % 60;
@@ -262,7 +262,16 @@ export function showResults({ win, mode, time, moves, pairs, totalPairs, hpDiff,
     win ? (mode === 'endless' ? `Round ${pairs} completed!` : 'Excellent memory!') : 'Better luck next time.';
   document.getElementById('results-time').textContent     = fmt(time);
   document.getElementById('results-moves').textContent    = moves;
-  document.getElementById('results-pairs').textContent    = `${pairs}/${totalPairs}`;
+  // In multiplayer show "mine vs opponent" format, in singleplayer just "pairs/total"
+  const pairsEl      = document.getElementById('results-pairs');
+  const pairsLabelEl = document.getElementById('results-pairs-label');
+  if (mode === 'multiplayer' && oppPairs !== undefined) {
+    if (pairsLabelEl) pairsLabelEl.textContent = 'Pairs (you vs opp)';
+    pairsEl.textContent = `${pairs} vs ${oppPairs}`;
+  } else {
+    if (pairsLabelEl) pairsLabelEl.textContent = 'Pairs';
+    pairsEl.textContent = `${pairs}/${totalPairs}`;
+  }
 
   // Accuracy stat: for multiplayer show HP advantage, for singleplayer show accuracy %
   const accLabelEl = document.getElementById('results-accuracy-label');
