@@ -1,0 +1,101 @@
+/* ═══════════════════════════════════════════════════════════
+   Memory Master — themes.css
+   Light theme and alternate accent themes
+═══════════════════════════════════════════════════════════ */
+
+/* ─── Light Theme ─── */
+[data-theme="light"] {
+  --color-bg:           #f5f5f5;
+  --color-surface:      #ffffff;
+  --color-surface-2:    #f0f0f0;
+  --color-surface-3:    #e8e8e8;
+  --color-border:       rgba(0,0,0,0.08);
+  --color-text:         #1a1a1a;
+  --color-text-muted:   #888888;
+  --color-accent:       #5e6ad2;
+  --color-accent-hover: #4a56be;
+  --color-success:      #3d9e6b;
+  --color-danger:       #d93d35;
+  --shadow-card:        0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.06);
+  --shadow-elevated:    0 8px 32px rgba(0,0,0,0.12);
+}
+
+[data-theme="light"] .auth-bg-grid {
+  background-image: radial-gradient(circle, rgba(0,0,0,0.06) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+[data-theme="light"] .auth-bg-grid::before {
+  background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(94,106,210,0.08), transparent 70%);
+}
+
+[data-theme="light"] .card-back {
+  background: #e8e8e8;
+  border-color: rgba(0,0,0,0.1);
+}
+[data-theme="light"] .memory-card:hover:not(.flipped):not(.matched) .card-back {
+  background: #e0e0e0;
+  border-color: rgba(0,0,0,0.15);
+}
+[data-theme="light"] .card-front {
+  background: #f0f0f0;
+  border-color: rgba(0,0,0,0.1);
+}
+[data-theme="light"] .card-front i { color: #333333; }
+[data-theme="light"] .card-back-dots span { background: rgba(0,0,0,0.15); }
+
+[data-theme="light"] .pause-overlay { background: rgba(200,200,200,0.75); }
+
+[data-theme="light"] .topnav__logo-icon { background: var(--color-accent); }
+
+[data-theme="light"] .user-avatar { background: var(--color-accent); }
+
+[data-theme="light"] .auth-card {
+  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+}
+
+[data-theme="light"] .leaderboard-row:hover { background: rgba(0,0,0,0.03); }
+[data-theme="light"] .leaderboard-row--self  { background: rgba(94,106,210,0.05); }
+
+[data-theme="light"] .mode-btn:hover { background: rgba(0,0,0,0.04); }
+[data-theme="light"] .stat-item:hover { background: rgba(0,0,0,0.03); }
+
+/* ─── Theme transition ─── */
+body, body * {
+  transition-property: background-color, border-color, color, box-shadow;
+  transition-duration: 200ms;
+  transition-timing-function: ease;
+}
+/* Override for elements that should NOT animate color changes */
+.memory-card, .card-inner, .card-front, .card-back,
+.memory-card.matched .card-front, .ability-toast,
+.particle, .btn-spinner {
+  transition-property: none;
+}
+/* Restore intended transitions for these elements */
+.card-back {
+  transition: background 150ms ease, border-color 150ms ease;
+}
+.card-inner {
+  transition: transform 0.5s cubic-bezier(0.4, 0.2, 0.2, 1.0);
+}
+.hp-bar__fill {
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ─── Reduced Motion ─── */
+@media (prefers-reduced-motion: reduce) {
+  .wordmark-letter,
+  .auth-wordmark__sub,
+  .auth-card,
+  .memory-card,
+  .card-inner,
+  .pause-panel,
+  .results-card,
+  .results-badge,
+  .ability-toast,
+  .particle {
+    animation: none !important;
+  }
+  .card-inner { transition: none !important; }
+  body, body * { transition: none !important; }
+}

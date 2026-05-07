@@ -1,0 +1,21 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "multiplayer_index",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "room_code", "order": "ASCENDING" },
+        { "fieldPath": "status",    "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "multiplayer_index",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "created_by", "order": "ASCENDING" },
+        { "fieldPath": "status",     "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

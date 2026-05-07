@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Memory Master</title>
+
+  <!-- Security Headers via meta (backup; primary headers set server-side in firebase.json) -->
+  <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+  <meta http-equiv="X-Frame-Options" content="DENY" />
+  <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
+  <!--
+    Content-Security-Policy NOTE:
+    Full CSP is enforced via firebase.json headers (see below).
+    A meta CSP is listed here for documentation purposes only.
+    Effective policy:
+      default-src 'self';
+      script-src 'self' https://unpkg.com https://www.gstatic.com;
+      style-src  'self' 'unsafe-inline' https://fonts.googleapis.com;
+      font-src   'self' https://fonts.gstatic.com;
+      connect-src 'self' https://*.firebaseio.com https://*.googleapis.com wss://*.firebaseio.com;
+      img-src 'self' data:;
+      frame-ancestors 'none';
+  -->
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="css/main.css?v=1778171834" />
+  <link rel="stylesheet" href="css/dashboard.css?v=1778171834" />
+  <link rel="stylesheet" href="css/game.css?v=1778171834" />
+  <link rel="stylesheet" href="css/themes.css?v=1778171834" />
+
+  <!-- Lucide Icons — pinana verzija (ne @latest) -->
+  <script src="https://unpkg.com/lucide@1.14.0/dist/umd/lucide.min.js"></script>
+</head>
+<body data-theme="default">
+
+  <!-- ═══════════════════════════════════════════════
+       SCREEN 1: AUTH
+  ═══════════════════════════════════════════════ -->
+  <div id="screen-auth" class="screen screen--auth active">
+    <div class="auth-bg-grid"></div>
+    <div class="auth-center">
+      <!-- Wordmark -->
+      <div class="auth-wordmark">
+        <div class="auth-wordmark__logo">
+          <span class="wordmark-letter" style="--i:0">M</span><span
+                class="wordmark-letter" style="--i:1">e</span><span
+                class="wordmark-letter" style="--i:2">m</span><span
+                class="wordmark-letter" style="--i:3">o</span><span
+                class="wordmark-letter" style="--i:4">r</span><span
+                class="wordmark-letter" style="--i:5">y</span>
+          <span class="wordmark-space"></span>
+          <span class="wordmark-letter accent" style="--i:7">M</span><span
+                class="wordmark-letter accent" style="--i:8">a</span><span
+                class="wordmark-letter accent" style="--i:9">s</span><span
+                class="wordmark-letter accent" style="--i:10">t</span><span
+                class="wordmark-letter accent" style="--i:11">e</span><span
+                class="wordmark-letter accent" style="--i:12">r</span>
+        </div>
+        <p class="auth-wordmark__sub">Test your memory. Climb the leaderboard.</p>
+      </div>
+
+      <!-- Auth Card -->
+      <div class="auth-card">
+        <!-- Tabs -->
+        <div class="auth-tabs" role="tablist">
+          <button class="auth-tab active" data-tab="login" role="tab" aria-selected="true">Sign In</button>
+          <button class="auth-tab" data-tab="register" role="tab" aria-selected="false">Register</button>
+          <button class="auth-tab" data-tab="guest" role="tab" aria-selected="false">Guest</button>
+        </div>
+
+        <!-- Login Panel -->
+        <div class="auth-panel active" id="panel-login">
+          <div class="auth-form">
+            <div class="form-group">
+              <label class="form-label" for="login-email">Email</label>
+              <input class="form-input" type="email" id="login-email" placeholder="you@example.com" autocomplete="email" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="login-password">Password</label>
+              <input class="form-input" type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" />
+            </div>
+            <div id="login-error" class="form-error" hidden></div>
+            <button class="btn btn--primary btn--full" id="btn-login">
+              <span class="btn-text">Sign In</span>
+              <span class="btn-spinner" hidden></span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Register Panel -->
+        <div class="auth-panel" id="panel-register">
+          <div class="auth-form">
+            <div class="form-group">
+              <label class="form-label" for="reg-username">Username</label>
+              <input class="form-input" type="text" id="reg-username" placeholder="CoolPlayer42" maxlength="20" autocomplete="username" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="reg-email">Email</label>
+              <input class="form-input" type="email" id="reg-email" placeholder="you@example.com" autocomplete="email" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="reg-password">Password</label>
+              <input class="form-input" type="password" id="reg-password" placeholder="Min. 6 characters" autocomplete="new-password" />
+            </div>
+            <div id="register-error" class="form-error" hidden></div>
+            <button class="btn btn--primary btn--full" id="btn-register">
+              <span class="btn-text">Create Account</span>
+              <span class="btn-spinner" hidden></span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Guest Panel -->
+        <div class="auth-panel" id="panel-guest">
+          <div class="auth-form auth-form--guest">
+            <p class="guest-info">Play without an account. Your progress won't be saved to the leaderboard.</p>
+            <div class="form-group">
+              <label class="form-label" for="guest-name">Display Name</label>
+              <input class="form-input" type="text" id="guest-name" placeholder="GuestPlayer" maxlength="20" />
+            </div>
+            <button class="btn btn--surface btn--full" id="btn-guest">
+              Continue as Guest
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       SCREEN 2: DASHBOARD
+  ═══════════════════════════════════════════════ -->
+  <div id="screen-dashboard" class="screen screen--dashboard">
+    <!-- Top Nav -->
+    <nav class="topnav">
+      <div class="topnav__brand">
+        <span class="topnav__logo-icon"><i data-lucide="layers"></i></span>
+        <span class="topnav__title">Memory Master</span>
+      </div>
+      <div class="topnav__right">
+        <div class="topnav__theme-toggle" id="theme-toggle" title="Toggle theme">
+          <i data-lucide="sun"></i>
+        </div>
+        <div class="topnav__user" id="topnav-user">
+          <div class="user-avatar" id="nav-avatar">G</div>
+          <span class="user-name" id="nav-username">Guest</span>
+        </div>
+        <button class="btn btn--ghost btn--sm" id="btn-logout">
+          <i data-lucide="log-out"></i>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Dashboard Grid -->
+    <main class="dashboard-grid">
+      <!-- Col 1: Player Stats -->
+      <section class="dash-card dash-card--stats" aria-label="Player Statistics">
+        <div class="dash-card__header">
+          <h2 class="dash-card__title">Your Stats</h2>
+          <span class="badge badge--muted" id="stats-rating">Rating: 1000</span>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <span class="stat-value" id="stat-wins">0</span>
+            <span class="stat-label">Wins</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value" id="stat-losses">0</span>
+            <span class="stat-label">Losses</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value" id="stat-matches">0</span>
+            <span class="stat-label">Matches</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value stat-value--accent" id="stat-winrate">0%</span>
+            <span class="stat-label">Win Rate</span>
+          </div>
+        </div>
+        <div class="best-times">
+          <h3 class="best-times__title">Best Times</h3>
+          <div class="best-time-list">
+            <div class="best-time-row">
+              <span class="best-time-label">Easy</span>
+              <span class="best-time-val" id="bt-easy">--:--</span>
+            </div>
+            <div class="best-time-row">
+              <span class="best-time-label">Medium</span>
+              <span class="best-time-val" id="bt-medium">--:--</span>
+            </div>
+            <div class="best-time-row">
+              <span class="best-time-label">Hard</span>
+              <span class="best-time-val" id="bt-hard">--:--</span>
+            </div>
+            <div class="best-time-row">
+              <span class="best-time-label">Hardcore</span>
+              <span class="best-time-val" id="bt-hardcore">--:--</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Col 2: Game Mode Selector -->
+      <section class="dash-card dash-card--modes" aria-label="Game Modes">
+        <div class="dash-card__header">
+          <h2 class="dash-card__title">Play</h2>
+        </div>
+
+        <div class="mode-group">
+          <p class="mode-group__label">Singleplayer</p>
+          <div class="mode-list">
+            <button class="mode-btn" data-mode="easy">
+              <div class="mode-btn__icon"><i data-lucide="circle"></i></div>
+              <div class="mode-btn__info">
+                <span class="mode-btn__name">Easy</span>
+                <span class="mode-btn__desc">4×3 grid · 6 pairs</span>
+              </div>
+              <div class="mode-btn__arrow"><i data-lucide="chevron-right"></i></div>
+            </button>
+            <button class="mode-btn" data-mode="medium">
+              <div class="mode-btn__icon"><i data-lucide="circle-dot"></i></div>
+              <div class="mode-btn__info">
+                <span class="mode-btn__name">Medium</span>
+                <span class="mode-btn__desc">4×4 grid · 8 pairs</span>
+              </div>
+              <div class="mode-btn__arrow"><i data-lucide="chevron-right"></i></div>
+            </button>
+            <button class="mode-btn" data-mode="hard">
+              <div class="mode-btn__icon"><i data-lucide="triangle"></i></div>
+              <div class="mode-btn__info">
+                <span class="mode-btn__name">Hard</span>
+                <span class="mode-btn__desc">5×4 grid · 10 pairs</span>
+              </div>
+              <div class="mode-btn__arrow"><i data-lucide="chevron-right"></i></div>
+            </button>
+            <button class="mode-btn" data-mode="hardcore">
+              <div class="mode-btn__icon"><i data-lucide="zap"></i></div>
+              <div class="mode-btn__info">
+                <span class="mode-btn__name">Hardcore</span>
+                <span class="mode-btn__desc">6×5 grid · 15 pairs</span>
+              </div>
+              <div class="mode-btn__arrow"><i data-lucide="chevron-right"></i></div>
+            </button>
+            <button class="mode-btn mode-btn--special" data-mode="endless">
+              <div class="mode-btn__icon"><i data-lucide="infinity"></i></div>
+              <div class="mode-btn__info">
+                <span class="mode-btn__name">Endless</span>
+                <span class="mode-btn__desc">New board on complete · +10s bonus</span>
+              </div>
+              <div class="mode-btn__arrow"><i data-lucide="chevron-right"></i></div>
+            </button>
+          </div>
+        </div>
+
+        <div class="mode-group">
+          <p class="mode-group__label">Multiplayer</p>
+          <div class="mode-list">
+            <button class="mode-btn mode-btn--multi" id="btn-go-multiplayer">
+              <div class="mode-btn__icon"><i data-lucide="users"></i></div>
+              <div class="mode-btn__info">
+                <span class="mode-btn__name">1v1 Battle</span>
+                <span class="mode-btn__desc">Real-time · HP system · Powers</span>
+              </div>
+              <div class="mode-btn__arrow"><i data-lucide="chevron-right"></i></div>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Col 3: Leaderboard -->
+      <section class="dash-card dash-card--leaderboard" aria-label="Leaderboard">
+        <div class="dash-card__header">
+          <h2 class="dash-card__title">Leaderboard</h2>
+          <span class="badge badge--accent">Top 10</span>
+        </div>
+        <div class="leaderboard-list" id="leaderboard-list">
+          <div class="leaderboard-loading">
+            <span class="loading-dot"></span>
+            <span class="loading-dot"></span>
+            <span class="loading-dot"></span>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       SCREEN 3: SINGLEPLAYER GAME
+  ═══════════════════════════════════════════════ -->
+  <div id="screen-game" class="screen screen--game">
+    <!-- Game Header -->
+    <header class="game-header">
+      <button class="btn btn--ghost btn--sm" id="btn-game-back">
+        <i data-lucide="arrow-left"></i>
+        <span>Dashboard</span>
+      </button>
+      <div class="game-meta">
+        <div class="game-hud-item" id="hud-mode-badge">
+          <span class="badge badge--surface" id="hud-mode">Easy</span>
+        </div>
+        <div class="game-hud-item">
+          <i data-lucide="clock" class="hud-icon"></i>
+          <span class="hud-value" id="hud-timer">00:00</span>
+        </div>
+        <div class="game-hud-item">
+          <i data-lucide="mouse-pointer-click" class="hud-icon"></i>
+          <span class="hud-value" id="hud-moves">0</span>
+          <span class="hud-label">moves</span>
+        </div>
+        <div class="game-hud-item">
+          <i data-lucide="check-circle" class="hud-icon"></i>
+          <span class="hud-value" id="hud-pairs">0/6</span>
+        </div>
+      </div>
+      <button class="btn btn--ghost btn--sm btn--icon" id="btn-game-pause" title="Pause">
+        <i data-lucide="pause"></i>
+      </button>
+    </header>
+
+    <!-- Card Grid -->
+    <div class="game-arena">
+      <div class="card-grid" id="card-grid"></div>
+    </div>
+
+    <!-- Pause Overlay -->
+    <div class="pause-overlay" id="pause-overlay" hidden>
+      <div class="pause-panel">
+        <h2 class="pause-title">Paused</h2>
+        <div class="pause-actions">
+          <button class="btn btn--primary" id="btn-resume">
+            <i data-lucide="play"></i> Resume
+          </button>
+          <button class="btn btn--surface" id="btn-restart">
+            <i data-lucide="rotate-ccw"></i> Restart
+          </button>
+          <button class="btn btn--ghost" id="btn-pause-dashboard">
+            <i data-lucide="layout-dashboard"></i> Dashboard
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       SCREEN 4: MULTIPLAYER LOBBY
+  ═══════════════════════════════════════════════ -->
+  <div id="screen-lobby" class="screen screen--lobby">
+    <header class="game-header">
+      <button class="btn btn--ghost btn--sm" id="btn-lobby-back">
+        <i data-lucide="arrow-left"></i>
+        <span>Dashboard</span>
+      </button>
+      <h1 class="screen-title">Multiplayer</h1>
+      <div></div>
+    </header>
+
+    <div class="lobby-center">
+      <div class="lobby-grid">
+        <!-- Create Room -->
+        <div class="lobby-card">
+          <div class="lobby-card__icon"><i data-lucide="plus-circle"></i></div>
+          <h2 class="lobby-card__title">Create Room</h2>
+          <p class="lobby-card__desc">Start a new game and share your code with a friend.</p>
+          <button class="btn btn--primary btn--full" id="btn-create-room">
+            Create Room
+          </button>
+          <div class="room-code-display" id="room-code-display" hidden>
+            <p class="room-code-label">Your room code</p>
+            <div class="room-code" id="room-code-value">------</div>
+            <p class="room-code-waiting">
+              <span class="pulse-dot"></span>
+              Waiting for opponent...
+            </p>
+          </div>
+        </div>
+
+        <!-- Divider -->
+        <div class="lobby-divider">
+          <div class="lobby-divider__line"></div>
+          <span class="lobby-divider__text">or</span>
+          <div class="lobby-divider__line"></div>
+        </div>
+
+        <!-- Join Room -->
+        <div class="lobby-card">
+          <div class="lobby-card__icon"><i data-lucide="log-in"></i></div>
+          <h2 class="lobby-card__title">Join Room</h2>
+          <p class="lobby-card__desc">Enter the 6-digit code your friend shared.</p>
+          <div class="form-group">
+            <input class="form-input form-input--code" type="text" id="join-code-input"
+                   placeholder="ABC123" maxlength="6" autocomplete="off"
+                   inputmode="text" autocapitalize="characters" spellcheck="false"
+                   style="text-transform:uppercase; letter-spacing: 0.3em; text-align:center;" />
+          </div>
+          <div id="join-error" class="form-error" hidden></div>
+          <button class="btn btn--surface btn--full" id="btn-join-room">
+            Join Room
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       SCREEN 5: MULTIPLAYER GAME
+  ═══════════════════════════════════════════════ -->
+  <div id="screen-multiplayer" class="screen screen--multiplayer">
+    <!-- Player 2 (opponent, top) -->
+    <div class="mp-player mp-player--top" id="mp-player2">
+      <div class="mp-player__info">
+        <div class="mp-avatar" id="mp-avatar2">?</div>
+        <span class="mp-username" id="mp-username2">Opponent</span>
+      </div>
+      <div class="hp-bar-wrap">
+        <div class="hp-bar" id="hp-bar2">
+          <div class="hp-bar__fill" id="hp-fill2" style="width:100%"></div>
+        </div>
+        <span class="hp-value" id="hp-value2">100 HP</span>
+      </div>
+    </div>
+
+    <!-- Turn Indicator -->
+    <div class="turn-indicator" id="turn-indicator">
+      <div class="turn-indicator__pill" id="turn-pill">
+        <i data-lucide="circle-dot"></i>
+        <span id="turn-text">Your turn</span>
+      </div>
+      <span class="turn-timer" id="turn-timer"></span>
+    </div>
+
+    <!-- Ability Log Panel (left side) -->
+    <div class="ability-log" id="ability-log">
+      <div class="ability-log__title">Abilities</div>
+      <div class="ability-log__list" id="ability-log-list"></div>
+    </div>
+
+    <!-- Multiplayer Card Grid -->
+    <div class="game-arena game-arena--mp">
+      <div class="card-grid card-grid--mp" id="mp-card-grid"></div>
+    </div>
+
+    <!-- Ability Toast Container -->
+    <div class="ability-toasts" id="ability-toasts"></div>
+
+    <!-- Player 1 (self, bottom) -->
+    <div class="mp-player mp-player--bottom" id="mp-player1">
+      <div class="mp-player__info">
+        <div class="mp-avatar" id="mp-avatar1">M</div>
+        <span class="mp-username" id="mp-username1">You</span>
+      </div>
+      <div class="hp-bar-wrap">
+        <div class="hp-bar" id="hp-bar1">
+          <div class="hp-bar__fill hp-bar__fill--self" id="hp-fill1" style="width:100%"></div>
+        </div>
+        <span class="hp-value" id="hp-value1">100 HP</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       SCREEN 6: RESULTS
+  ═══════════════════════════════════════════════ -->
+  <div id="screen-results" class="screen screen--results">
+    <div class="results-center">
+      <div class="results-card">
+        <!-- Result Header -->
+        <div class="results-icon" id="results-icon">
+          <i data-lucide="trophy"></i>
+        </div>
+        <h1 class="results-title" id="results-title">You Won!</h1>
+        <p class="results-subtitle" id="results-subtitle">Amazing memory!</p>
+
+        <!-- Stats Breakdown -->
+        <div class="results-stats">
+          <div class="results-stat">
+            <span class="results-stat__label">Time</span>
+            <span class="results-stat__value" id="results-time">00:00</span>
+          </div>
+          <div class="results-stat">
+            <span class="results-stat__label">Moves</span>
+            <span class="results-stat__value" id="results-moves">0</span>
+          </div>
+          <div class="results-stat">
+            <span class="results-stat__label">Pairs</span>
+            <span class="results-stat__value" id="results-pairs">0</span>
+          </div>
+          <div class="results-stat">
+            <span class="results-stat__label">Accuracy</span>
+            <span class="results-stat__value" id="results-accuracy">0%</span>
+          </div>
+        </div>
+
+        <!-- New Best Badge -->
+        <div class="results-badge" id="results-new-best" hidden>
+          <i data-lucide="star"></i> New Best Time!
+        </div>
+
+        <!-- Guest upsell -->
+        <div class="guest-upsell" id="guest-upsell" hidden>
+          <p>Register to save your score to the leaderboard!</p>
+          <button class="btn btn--accent btn--sm" id="btn-upsell-register">Create Account</button>
+        </div>
+
+        <!-- Actions -->
+        <div class="results-actions">
+          <button class="btn btn--surface" id="btn-results-dashboard">
+            <i data-lucide="layout-dashboard"></i> Dashboard
+          </button>
+        </div>
+      </div>
+
+      <!-- Particle Container -->
+      <div class="particles-container" id="particles-container"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       GLOBAL OVERLAYS
+  ═══════════════════════════════════════════════ -->
+
+  <!-- Toast Notification -->
+  <div class="toast-container" id="toast-container" aria-live="polite"></div>
+
+
+  <!-- ═══════════════════════════════════════════════
+       COIN FLIP OVERLAY (multiplayer match start)
+  ═══════════════════════════════════════════════ -->
+  <div id="coin-flip-overlay" class="coin-flip-overlay" hidden>
+    <div class="coin-flip-content">
+      <p class="coin-flip-label" id="coin-flip-label">Deciding who goes first...</p>
+      <div class="coin" id="coin-el">
+        <div class="coin__face coin__face--heads">
+          <i data-lucide="user"></i>
+        </div>
+        <div class="coin__face coin__face--tails">
+          <i data-lucide="users"></i>
+        </div>
+      </div>
+      <p class="coin-flip-result" id="coin-flip-result"></p>
+    </div>
+  </div>
+
+  <!-- JS Modules -->
+  <script type="module" src="js/app.js?v=1778173022"></script>
+</body>
+</html>

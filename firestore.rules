@@ -1,0 +1,49 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Users: any signed-in user can read; only owner can write
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth.uid == userId;
+    }
+
+    // Stats: any signed-in user can read; only owner can write
+    match /stats/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth.uid == userId;
+    }
+
+    // Singleplayer sessions: owner-only
+    match /games/singleplayer/{sessionId}/data {
+      allow read, write: if request.auth != null &&
+        (resource == null || resource.data.uid == request.auth.uid);
+    }
+
+    // Multiplayer matches: both participants can read/write
+    match /games/multiplayer/{matchId}/data {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && (
+        // New document (createRoom)
+        resource == null ||
+        // Player 1 (host) can always write
+        resource.data.player1.uid == request.auth.uid ||
+        // Player 2 joining a waiting room (player2 is still null at this point)
+        resource.data.status == 'waiting' ||
+        // Player 2 already in the match
+        (resource.data.player2 != null && resource.data.player2.uid == request.auth.uid)
+      );
+    }
+
+    // Multiplayer index: for room-code lookups
+    // Any authenticated user can read and update (needed for player2 to mark status=active)
+    // Only creator can create their own index doc
+    match /multiplayer_index/{matchId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.created_by == request.auth.uid;
+      allow update: if request.auth != null;
+      allow delete: if false;
+    }
+  }
+}
