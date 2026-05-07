@@ -12,15 +12,15 @@ import {
   query, where, getDocs,
 } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
 
-import { db }                                        from './firebase.js?v=1778189194';
-import { getState, setState, resetMultiplayerState } from './state_manager.js?v=1778189194';
-import { generateBoard }                             from './game_logic.js?v=1778189194';
+import { db }                                        from './firebase.js?v=1778189719';
+import { getState, setState, resetMultiplayerState } from './state_manager.js?v=1778189719';
+import { generateBoard }                             from './game_logic.js?v=1778189719';
 import {
   showScreen, showToast, updateHPBar,
   updateTurnIndicator, showAbilityToast,
   showResults, showCoinFlip, renderAbilityLog,
-} from './ui_manager.js?v=1778189194';
-import { updateMultiplayerRating }                   from './dashboard.js?v=1778189194';
+} from './ui_manager.js?v=1778189719';
+import { updateMultiplayerRating }                   from './dashboard.js?v=1778189719';
 
 // ── Ability definitions ────────────────────────────────────
 const ABILITIES = ['damage','heal','extra_turn','reveal_card'];
@@ -96,10 +96,9 @@ export async function createRoom() {
 
   setState('multiplayer', { matchId, roomCode: code, isHost: true, playerId: user.uid });
 
-  const { showRoomCode } = await import('./ui_manager.js?v=1778189194');
+  const { showRoomCode } = await import('./ui_manager.js?v=1778189719');
   showRoomCode(code);
   subscribeToMatch(matchId);
-  startHostPolling(matchId, user.uid);
 }
 
 // ── Join Room ──────────────────────────────────────────────
@@ -184,34 +183,10 @@ export async function joinRoom(code) {
 }
 
 // ── Host Polling Fallback ─────────────────────────────────
-function startHostPolling(matchId, uid) {
-  const MAX_POLLS = 150;
-  let polls = 0;
-
-  const intervalId = setInterval(async () => {
-    polls++;
-    if (polls > MAX_POLLS) { clearInterval(intervalId); return; }
-
-    if (getState('ui.currentScreen') === 'multiplayer') {
-      clearInterval(intervalId);
-      return;
-    }
-
-    try {
-      const snap = await getDoc(doc(db, 'games', 'multiplayer', matchId, 'data'));
-      if (!snap.exists()) return;
-      const data = snap.data();
-      if (data.status === 'active') {
-        clearInterval(intervalId);
-        renderMultiplayerBoard(data, uid, true);
-        showScreen('multiplayer');
-        startTurnCountdown(data.current_turn, data.turn_deadline, matchId);
-      }
-    } catch(e) { /* retry next poll */ }
-  }, 2000);
-
-  setState('multiplayer', { hostPollInterval: intervalId });
-}
+// Removed: host now relies entirely on onSnapshot (handleMatchUpdate)
+// to detect when player2 joins and transition to active state.
+// This eliminates the race condition where polling + onSnapshot both
+// tried to show the coin flip / render the board simultaneously.
 
 // ── Subscribe to Match ─────────────────────────────────────
 export function subscribeToMatch(matchId) {
@@ -231,6 +206,7 @@ export function subscribeToMatch(matchId) {
 // turn actually changes — not on every card-flip onSnapshot.
 let _lastSeenTurn     = null;
 let _lastSeenDeadline = null;
+let _coinFlipShown    = false; // prevent duplicate coin flip on host side
 
 // Exported so auth.js can seed these values on reconnect before onSnapshot fires.
 // Prevents handleMatchUpdate from restarting the timer on the first snapshot.
@@ -244,13 +220,13 @@ function handleMatchUpdate(data, matchId) {
   const uid  = mp.playerId;
   const isP1 = data.player1?.uid === uid;
 
-  // Transition waiting → active (host side)
-  if (data.status === 'active' && getState('ui.currentScreen') !== 'multiplayer') {
+  // Transition waiting → active (host side — onSnapshot fires when player2 joins)
+  if (data.status === 'active' && !_coinFlipShown) {
+    _coinFlipShown = true;
     renderMultiplayerBoard(data, uid, isP1);
     showScreen('multiplayer');
     _lastSeenTurn     = data.current_turn;
     _lastSeenDeadline = data.turn_deadline;
-    // Show coin flip to host too
     const oppName  = isP1 ? data.player2?.username : data.player1?.username;
     const myName   = isP1 ? data.player1?.username : data.player2?.username;
     const iGoFirst = data.current_turn === uid;
@@ -693,6 +669,9 @@ function handleMatchEnd(data, uid) {
   // Clear ability log for next match (also reset logKey cache so next match re-renders)
   const _logList = document.getElementById('ability-log-list');
   if (_logList) { _logList.innerHTML = ''; delete _logList.dataset.logKey; }
+
+  // Reset coin flip flag so next match shows it again
+  _coinFlipShown = false;
 
   // Clear any pending observer flip timers
   Object.keys(_observerFlipTimers).forEach(k => { clearTimeout(_observerFlipTimers[k]); delete _observerFlipTimers[k]; });
