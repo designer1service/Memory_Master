@@ -3,7 +3,7 @@
 // Screen routing, toasts, animations, theme, particles
 // ═══════════════════════════════════════════════════════════
 
-import { getState, setState } from './state_manager.js?v=1778173022';
+import { getState, setState } from './state_manager.js?v=1778174479';
 
 // ── Screen Management ──────────────────────────────────────
 
@@ -250,13 +250,12 @@ export function renderAbilityLog(entries) {
 
 // ── Results Screen ─────────────────────────────────────────
 
-export function showResults({ win, mode, time, moves, pairs, totalPairs, isGuest, isNewBest }) {
+export function showResults({ win, mode, time, moves, pairs, totalPairs, hpDiff, isGuest, isNewBest }) {
   const fmt = (s) => {
     const m = Math.floor(s / 60);
     const sec = s % 60;
     return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
   };
-  const accuracy = moves > 0 ? Math.round((pairs / moves) * 100) : 0;
 
   document.getElementById('results-title').textContent    = win ? 'You Won!' : 'Game Over';
   document.getElementById('results-subtitle').textContent =
@@ -264,7 +263,19 @@ export function showResults({ win, mode, time, moves, pairs, totalPairs, isGuest
   document.getElementById('results-time').textContent     = fmt(time);
   document.getElementById('results-moves').textContent    = moves;
   document.getElementById('results-pairs').textContent    = `${pairs}/${totalPairs}`;
-  document.getElementById('results-accuracy').textContent = `${accuracy}%`;
+
+  // Accuracy stat: for multiplayer show HP advantage, for singleplayer show accuracy %
+  const accLabelEl = document.getElementById('results-accuracy-label');
+  const accValueEl = document.getElementById('results-accuracy');
+  if (mode === 'multiplayer' && hpDiff !== undefined) {
+    if (accLabelEl) accLabelEl.textContent = 'HP Advantage';
+    const sign = hpDiff > 0 ? '+' : '';
+    if (accValueEl) accValueEl.textContent = `${sign}${hpDiff} HP`;
+  } else {
+    if (accLabelEl) accLabelEl.textContent = 'Accuracy';
+    const accuracy = moves > 0 ? Math.round((pairs / moves) * 100) : 0;
+    if (accValueEl) accValueEl.textContent = `${accuracy}%`;
+  }
 
   // Icon
   const icon = document.getElementById('results-icon');

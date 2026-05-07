@@ -12,15 +12,15 @@ import {
   query, where, getDocs,
 } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
 
-import { db }                                        from './firebase.js?v=1778173022';
-import { getState, setState, resetMultiplayerState } from './state_manager.js?v=1778173022';
-import { generateBoard }                             from './game_logic.js?v=1778173022';
+import { db }                                        from './firebase.js?v=1778174479';
+import { getState, setState, resetMultiplayerState } from './state_manager.js?v=1778174479';
+import { generateBoard }                             from './game_logic.js?v=1778174479';
 import {
   showScreen, showToast, updateHPBar,
   updateTurnIndicator, showAbilityToast,
   showResults, showCoinFlip, renderAbilityLog,
-} from './ui_manager.js?v=1778173022';
-import { updateMultiplayerRating }                   from './dashboard.js?v=1778173022';
+} from './ui_manager.js?v=1778174479';
+import { updateMultiplayerRating }                   from './dashboard.js?v=1778174479';
 
 // ── Ability definitions ────────────────────────────────────
 const ABILITIES = ['damage','heal','extra_turn','reveal_card'];
@@ -80,6 +80,9 @@ export async function createRoom() {
     showing:          [],
     pair_abilities,
     ability_log:      [],
+    player1_moves:    0,
+    player2_moves:    0,
+    match_start_time: Date.now(),
     turn_deadline:    null,
     resolve_at:       null,
   };
@@ -93,7 +96,7 @@ export async function createRoom() {
 
   setState('multiplayer', { matchId, roomCode: code, isHost: true, playerId: user.uid });
 
-  const { showRoomCode } = await import('./ui_manager.js?v=1778173022');
+  const { showRoomCode } = await import('./ui_manager.js?v=1778174479');
   showRoomCode(code);
   subscribeToMatch(matchId);
   startHostPolling(matchId, user.uid);
@@ -470,10 +473,10 @@ async function resolveMPMatch(matchRef, data, board, flipped, uid) {
 
     // Apply ability
     if (ability === 'damage') {
-      if (isP1) p2.hp = Math.max(0, p2.hp - 15);
-      else      p1.hp = Math.max(0, p1.hp - 15);
-      showAbilityToast('damage', '⚡ Deal 15 damage!');
-      newLogEntry = { type: 'damage', who: whoName, text: 'dealt 15 dmg' };
+      if (isP1) p2.hp = Math.max(0, p2.hp - 25);
+      else      p1.hp = Math.max(0, p1.hp - 25);
+      showAbilityToast('damage', '⚡ Deal 25 damage!');
+      newLogEntry = { type: 'damage', who: whoName, text: 'dealt 25 dmg' };
     } else if (ability === 'heal') {
       if (isP1) p1.hp = Math.min(100, p1.hp + 20);
       else      p2.hp = Math.min(100, p2.hp + 20);
@@ -497,9 +500,35 @@ async function resolveMPMatch(matchRef, data, board, flipped, uid) {
       ? [newLogEntry, ...prevLog].slice(0, 5)
       : prevLog;
 
+    // Track moves for the active player
+    if (isP1) p1.player_moves = (data.player1_moves || 0) + 1;
+    else      p2.player_moves = (data.player2_moves || 0) + 1;
+
     const opponent = isP1 ? p2 : p1;
-    const status   = (opponent.hp <= 0 || newPairs >= data.total_pairs) ? 'finished' : 'active';
-    const winner   = status === 'finished' ? uid : null;
+    const self     = isP1 ? p1 : p2;
+    let   status   = 'active';
+    let   winner   = null;
+
+    if (opponent.hp <= 0) {
+      // Opponent ran out of HP
+      status = 'finished';
+      winner = uid;
+    } else if (newPairs >= data.total_pairs) {
+      // All pairs found — decide by pairs count, then HP tie-breaker
+      const myPairs  = (data.pairs_found_p1 || 0) + (isP1 ? 1 : 0);
+      const oppPairs = (data.pairs_found_p2 || 0) + (isP1 ? 0 : 1);
+      if (myPairs > oppPairs) {
+        status = 'finished'; winner = uid;
+      } else if (oppPairs > myPairs) {
+        status = 'finished'; winner = isP1 ? data.player2.uid : data.player1.uid;
+      } else {
+        // Equal pairs — HP tie-breaker
+        status = 'finished';
+        winner = self.hp > opponent.hp ? uid
+               : opponent.hp > self.hp ? (isP1 ? data.player2.uid : data.player1.uid)
+               : uid; // exact same HP: active player wins (last to act)
+      }
+    }
     const deadlineMs = status === 'active' ? Date.now() + 30_000 : null;
 
     // If reveal_card ability: show a random card to BOTH players via Firestore showing
@@ -510,17 +539,21 @@ async function resolveMPMatch(matchRef, data, board, flipped, uid) {
     }
 
     await updateDoc(matchRef, {
-      board_state:  board,
-      flipped:      [],
-      showing:      revealShowing,
-      player1:      p1,
-      player2:      p2,
-      current_turn: nextTurn,
-      pairs_found:  newPairs,
-      ability_log:  updatedLog,
+      board_state:     board,
+      flipped:         [],
+      showing:         revealShowing,
+      player1:         p1,
+      player2:         p2,
+      current_turn:    nextTurn,
+      pairs_found:     newPairs,
+      pairs_found_p1:  (data.pairs_found_p1 || 0) + (isP1 ? 1 : 0),
+      pairs_found_p2:  (data.pairs_found_p2 || 0) + (isP1 ? 0 : 1),
+      player1_moves:   isP1 ? p1.player_moves : (data.player1_moves || 0),
+      player2_moves:   isP1 ? (data.player2_moves || 0) : p2.player_moves,
+      ability_log:     updatedLog,
       status,
       winner,
-      turn_deadline: deadlineMs,
+      turn_deadline:   deadlineMs,
       last_action_timestamp: serverTimestamp(),
     });
 
@@ -550,8 +583,12 @@ async function resolveMPMatch(matchRef, data, board, flipped, uid) {
 
     let p1 = { ...data.player1 };
     let p2 = { ...data.player2 };
-    if (isP1) p1.hp = Math.max(0, p1.hp - 5);
-    else      p2.hp = Math.max(0, p2.hp - 5);
+    if (isP1) p1.hp = Math.max(0, p1.hp - 10);
+    else      p2.hp = Math.max(0, p2.hp - 10);
+
+    // Track moves for wrong match too
+    if (isP1) p1.player_moves = (data.player1_moves || 0) + 1;
+    else      p2.player_moves = (data.player2_moves || 0) + 1;
 
     const nextTurn   = isP1 ? data.player2.uid : data.player1.uid;
     const selfHp     = isP1 ? p1.hp : p2.hp;
@@ -560,12 +597,14 @@ async function resolveMPMatch(matchRef, data, board, flipped, uid) {
     const deadlineMs = status === 'active' ? Date.now() + 30_000 : null;
 
     await updateDoc(matchRef, {
-      board_state:  board,
-      flipped:      [],
-      showing:      [],
-      player1:      p1,
-      player2:      p2,
-      current_turn: nextTurn,
+      board_state:   board,
+      flipped:       [],
+      showing:       [],
+      player1:       p1,
+      player2:       p2,
+      player1_moves: isP1 ? p1.player_moves : (data.player1_moves || 0),
+      player2_moves: isP1 ? (data.player2_moves || 0) : p2.player_moves,
+      current_turn:  nextTurn,
       status,
       winner,
       turn_deadline: deadlineMs,
@@ -688,16 +727,31 @@ function handleMatchEnd(data, uid) {
 
   resetMultiplayerState();
 
-  const win = data.winner === uid;
+  const win    = data.winner === uid;
+  const isP1   = data.player1?.uid === uid;
   updateMultiplayerRating(win);
+
+  // Elapsed time in seconds
+  const elapsedMs = data.match_start_time
+    ? Date.now() - data.match_start_time
+    : 0;
+  const elapsedSec = Math.round(elapsedMs / 1000);
+
+  // Per-player stats
+  const myMoves  = isP1 ? (data.player1_moves || 0) : (data.player2_moves || 0);
+  const myPairs  = isP1 ? (data.pairs_found_p1 || 0) : (data.pairs_found_p2 || 0);
+  const myHp     = isP1 ? (data.player1?.hp ?? 0) : (data.player2?.hp ?? 0);
+  const oppHp    = isP1 ? (data.player2?.hp ?? 0) : (data.player1?.hp ?? 0);
+  const hpDiff   = myHp - oppHp;
 
   showResults({
     win,
     mode:       'multiplayer',
-    time:       0,
-    moves:      0,
-    pairs:      data.pairs_found || 0,
-    totalPairs: data.total_pairs  || 8,
+    time:       elapsedSec,
+    moves:      myMoves,
+    pairs:      myPairs,
+    totalPairs: data.total_pairs || 8,
+    hpDiff,
     isGuest:    false,
     isNewBest:  false,
   });
