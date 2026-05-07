@@ -12,15 +12,15 @@ import {
   query, where, getDocs,
 } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
 
-import { db }                                        from './firebase.js?v=1778189719';
-import { getState, setState, resetMultiplayerState } from './state_manager.js?v=1778189719';
-import { generateBoard }                             from './game_logic.js?v=1778189719';
+import { db }                                        from './firebase.js?v=1778190302';
+import { getState, setState, resetMultiplayerState } from './state_manager.js?v=1778190302';
+import { generateBoard }                             from './game_logic.js?v=1778190302';
 import {
   showScreen, showToast, updateHPBar,
   updateTurnIndicator, showAbilityToast,
   showResults, showCoinFlip, renderAbilityLog,
-} from './ui_manager.js?v=1778189719';
-import { updateMultiplayerRating }                   from './dashboard.js?v=1778189719';
+} from './ui_manager.js?v=1778190302';
+import { updateMultiplayerRating }                   from './dashboard.js?v=1778190302';
 
 // ── Ability definitions ────────────────────────────────────
 const ABILITIES = ['damage','heal','extra_turn','reveal_card'];
@@ -96,7 +96,7 @@ export async function createRoom() {
 
   setState('multiplayer', { matchId, roomCode: code, isHost: true, playerId: user.uid });
 
-  const { showRoomCode } = await import('./ui_manager.js?v=1778189719');
+  const { showRoomCode } = await import('./ui_manager.js?v=1778190302');
   showRoomCode(code);
   subscribeToMatch(matchId);
 }
@@ -406,7 +406,16 @@ async function onMPCardClick(idx) {
 
     // 1200ms so both players see both cards before resolution
     await new Promise(resolve => setTimeout(resolve, 1200));
-    await resolveMPMatch(matchRef, data, board, newFlipped, uid);
+
+    // Re-fetch fresh data after the wait — avoids stale HP/state from 1.2s ago
+    const freshSnap2 = await getDoc(matchRef);
+    if (!freshSnap2.exists()) return;
+    const freshData2 = freshSnap2.data();
+    // Abort if another process already resolved this turn (status changed or flipped cleared)
+    if (freshData2.status !== 'active') return;
+    if (!freshData2.flipped || freshData2.flipped.length < 2) return;
+
+    await resolveMPMatch(matchRef, freshData2, freshData2.board_state, newFlipped, uid);
   }
 }
 
