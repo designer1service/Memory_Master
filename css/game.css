@@ -523,6 +523,7 @@
 .results-icon i { width: 28px; height: 28px; }
 .results-icon--win  { background: rgba(94,106,210,0.12); border-color: rgba(94,106,210,0.25); color: var(--color-accent); }
 .results-icon--lose { background: rgba(229,83,75,0.1);   border-color: rgba(229,83,75,0.2);   color: var(--color-danger); }
+.results-icon--draw { background: rgba(245,197,24,0.1);  border-color: rgba(245,197,24,0.2);  color: #f5c518; }
 
 .results-title {
   font-size: 2rem;

@@ -12,15 +12,15 @@ import {
   query, where, getDocs,
 } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
 
-import { db, auth }                                  from './firebase.js?v=1778191105';
-import { getState, setState, resetMultiplayerState } from './state_manager.js?v=1778191105';
-import { generateBoard }                             from './game_logic.js?v=1778191105';
+import { db, auth }                                  from './firebase.js?v=1778191567';
+import { getState, setState, resetMultiplayerState } from './state_manager.js?v=1778191567';
+import { generateBoard }                             from './game_logic.js?v=1778191567';
 import {
   showScreen, showToast, updateHPBar,
   updateTurnIndicator, showAbilityToast,
   showResults, showCoinFlip, renderAbilityLog,
-} from './ui_manager.js?v=1778191105';
-import { updateMultiplayerRating }                   from './dashboard.js?v=1778191105';
+} from './ui_manager.js?v=1778191567';
+import { updateMultiplayerRating }                   from './dashboard.js?v=1778191567';
 
 // ── Ability definitions ────────────────────────────────────
 const ABILITIES = ['damage','heal','extra_turn','reveal_card'];
@@ -96,7 +96,7 @@ export async function createRoom() {
 
   setState('multiplayer', { matchId, roomCode: code, isHost: true, playerId: user.uid });
 
-  const { showRoomCode } = await import('./ui_manager.js?v=1778191105');
+  const { showRoomCode } = await import('./ui_manager.js?v=1778191567');
   showRoomCode(code);
   subscribeToMatch(matchId);
 }
@@ -498,21 +498,20 @@ async function resolveMPMatch(matchRef, data, board, flipped, uid) {
       // All pairs found — decide by pairs count, then HP tie-breaker
       const myPairs  = (data.pairs_found_p1 || 0) + (isP1 ? 1 : 0);
       const oppPairs = (data.pairs_found_p2 || 0) + (isP1 ? 0 : 1);
-      console.log('[WIN CHECK] isP1:', isP1, 'uid:', uid,
-        '| p1uid:', data.player1.uid, 'p2uid:', data.player2.uid,
-        '| myPairs:', myPairs, 'oppPairs:', oppPairs,
-        '| raw p1:', data.pairs_found_p1, 'raw p2:', data.pairs_found_p2,
-        '| myHp:', self.hp, 'oppHp:', opponent.hp);
       if (myPairs > oppPairs) {
         status = 'finished'; winner = uid;
       } else if (oppPairs > myPairs) {
         status = 'finished'; winner = isP1 ? data.player2.uid : data.player1.uid;
       } else {
-        // Equal pairs — HP tie-breaker
+        // Equal pairs — HP tie-breaker, or draw if HP also equal
         status = 'finished';
-        winner = self.hp > opponent.hp ? uid
-               : opponent.hp > self.hp ? (isP1 ? data.player2.uid : data.player1.uid)
-               : uid; // exact same HP: active player wins (last to act)
+        if (self.hp > opponent.hp) {
+          winner = uid;
+        } else if (opponent.hp > self.hp) {
+          winner = isP1 ? data.player2.uid : data.player1.uid;
+        } else {
+          winner = 'draw'; // exact same pairs AND same HP
+        }
       }
     }
     const deadlineMs = status === 'active' ? Date.now() + 30_000 : null;
@@ -716,7 +715,8 @@ function handleMatchEnd(data, uid) {
 
   resetMultiplayerState();
 
-  const win    = data.winner === uid;
+  const isDraw = data.winner === 'draw';
+  const win    = !isDraw && data.winner === uid;
   const isP1   = data.player1?.uid === uid;
   updateMultiplayerRating(win);
 
@@ -736,6 +736,7 @@ function handleMatchEnd(data, uid) {
 
   showResults({
     win,
+    isDraw,
     mode:       'multiplayer',
     time:       elapsedSec,
     moves:      myMoves,

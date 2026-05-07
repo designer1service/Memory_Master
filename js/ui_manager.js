@@ -3,7 +3,7 @@
 // Screen routing, toasts, animations, theme, particles
 // ═══════════════════════════════════════════════════════════
 
-import { getState, setState } from './state_manager.js?v=1778191105';
+import { getState, setState } from './state_manager.js?v=1778191567';
 
 // ── Screen Management ──────────────────────────────────────
 
@@ -250,28 +250,24 @@ export function renderAbilityLog(entries) {
 
 // ── Results Screen ─────────────────────────────────────────
 
-export function showResults({ win, mode, time, moves, pairs, oppPairs, totalPairs, hpDiff, isGuest, isNewBest }) {
+export function showResults({ win, isDraw, mode, time, moves, pairs, oppPairs, totalPairs, hpDiff, isGuest, isNewBest }) {
   const fmt = (s) => {
     const m = Math.floor(s / 60);
     const sec = s % 60;
     return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
   };
 
-  document.getElementById('results-title').textContent    = win ? 'You Won!' : 'Game Over';
-  document.getElementById('results-subtitle').textContent =
-    win ? (mode === 'endless' ? `Round ${pairs} completed!` : 'Excellent memory!') : 'Better luck next time.';
+  document.getElementById('results-title').textContent    = isDraw ? 'Draw!' : (win ? 'You Won!' : 'Game Over');
+  document.getElementById('results-subtitle').textContent = isDraw
+    ? 'Equal pairs and HP — it\'s a tie!'
+    : win ? (mode === 'endless' ? `Round ${pairs} completed!` : 'Excellent memory!') : 'Better luck next time.';
   document.getElementById('results-time').textContent     = fmt(time);
   document.getElementById('results-moves').textContent    = moves;
   // In multiplayer show "mine vs opponent" format, in singleplayer just "pairs/total"
   const pairsEl      = document.getElementById('results-pairs');
   const pairsLabelEl = document.getElementById('results-pairs-label');
-  if (mode === 'multiplayer' && oppPairs !== undefined) {
-    if (pairsLabelEl) pairsLabelEl.textContent = 'Pairs (you vs opp)';
-    pairsEl.textContent = `${pairs} vs ${oppPairs}`;
-  } else {
-    if (pairsLabelEl) pairsLabelEl.textContent = 'Pairs';
-    pairsEl.textContent = `${pairs}/${totalPairs}`;
-  }
+  if (pairsLabelEl) pairsLabelEl.textContent = 'Pairs';
+  pairsEl.textContent = `${pairs}/${totalPairs}`;
 
   // Accuracy stat: for multiplayer show HP advantage, for singleplayer show accuracy %
   const accLabelEl = document.getElementById('results-accuracy-label');
@@ -289,9 +285,9 @@ export function showResults({ win, mode, time, moves, pairs, oppPairs, totalPair
   // Icon
   const icon = document.getElementById('results-icon');
   if (icon) {
-    icon.className = `results-icon results-icon--${win ? 'win' : 'lose'}`;
+    icon.className = `results-icon results-icon--${isDraw ? 'draw' : (win ? 'win' : 'lose')}`;
     const i = icon.querySelector('i');
-    if (i) i.setAttribute('data-lucide', win ? 'trophy' : 'x-circle');
+    if (i) i.setAttribute('data-lucide', isDraw ? 'minus-circle' : (win ? 'trophy' : 'x-circle'));
   }
 
   const newBestEl = document.getElementById('results-new-best');
