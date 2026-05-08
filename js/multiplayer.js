@@ -12,15 +12,15 @@ import {
   query, where, getDocs,
 } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
 
-import { db, auth }                                  from './firebase.js?v=1778192570';
-import { getState, setState, resetMultiplayerState } from './state_manager.js?v=1778192570';
-import { generateBoard }                             from './game_logic.js?v=1778192570';
+import { db, auth }                                  from './firebase.js?v=1778243091';
+import { getState, setState, resetMultiplayerState } from './state_manager.js?v=1778243091';
+import { generateBoard }                             from './game_logic.js?v=1778243091';
 import {
   showScreen, showToast, updateHPBar,
   updateTurnIndicator, showAbilityToast,
   showResults, showCoinFlip, renderAbilityLog,
-} from './ui_manager.js?v=1778192570';
-import { updateMultiplayerRating }                   from './dashboard.js?v=1778192570';
+} from './ui_manager.js?v=1778243091';
+import { updateMultiplayerRating }                   from './dashboard.js?v=1778243091';
 
 // ── Ability definitions ────────────────────────────────────
 const ABILITIES = ['damage','heal','extra_turn','reveal_card'];
@@ -96,7 +96,7 @@ export async function createRoom() {
 
   setState('multiplayer', { matchId, roomCode: code, isHost: true, playerId: user.uid });
 
-  const { showRoomCode } = await import('./ui_manager.js?v=1778192570');
+  const { showRoomCode } = await import('./ui_manager.js?v=1778243091');
   showRoomCode(code);
   subscribeToMatch(matchId);
 }
@@ -738,7 +738,7 @@ function handleMatchEnd(data, uid) {
   const isDraw = data.winner === 'draw';
   const win    = !isDraw && data.winner === uid;
   const isP1   = data.player1?.uid === uid;
-  updateMultiplayerRating(win);
+  updateMultiplayerRating(win, isDraw);
 
   // Elapsed time in seconds
   const elapsedMs = data.match_start_time

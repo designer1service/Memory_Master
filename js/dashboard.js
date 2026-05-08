@@ -9,9 +9,9 @@ import {
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
 
-import { db }                             from './firebase.js?v=1778192570';
-import { getState, setState }             from './state_manager.js?v=1778192570';
-import { renderStats, renderLeaderboard, showToast } from './ui_manager.js?v=1778192570';
+import { db }                             from './firebase.js?v=1778243091';
+import { getState, setState }             from './state_manager.js?v=1778243091';
+import { renderStats, renderLeaderboard, showToast } from './ui_manager.js?v=1778243091';
 
 // ── Load full dashboard data ───────────────────────────────
 
@@ -50,7 +50,7 @@ async function loadLeaderboard() {
     const q = query(
       collection(db, 'stats'),
       orderBy('wins', 'desc'),
-      limit(10)
+      limit(15)
     );
     const snap  = await getDocs(q);
     const uids  = snap.docs.map(d => d.id);
@@ -68,7 +68,7 @@ async function loadLeaderboard() {
     }));
 
     const currentUid = getState('user')?.uid;
-    const { renderLeaderboard: render } = await import('./ui_manager.js?v=1778192570');
+    const { renderLeaderboard: render } = await import('./ui_manager.js?v=1778243091');
     render(entries, currentUid);
 
     if (window.lucide) window.lucide.createIcons();
@@ -136,23 +136,43 @@ export async function saveGameResult({ mode, time, moves, pairs, win }) {
 
 // ── Update Multiplayer Rating ──────────────────────────────
 
-export async function updateMultiplayerRating(win) {
+export async function updateMultiplayerRating(win, isDraw = false) {
   const user = getState('user');
   if (!user) return;
 
   const statsRef = doc(db, 'stats', user.uid);
   try {
     const snap = await getDoc(statsRef);
-    if (!snap.exists()) return;
-    const current = snap.data().multiplayer_rating || 1000;
-    const delta   = win ? 25 : -20;
+
+    const defaults = {
+      wins: 0, losses: 0, total_matches: 0,
+      multiplayer_rating: 1000,
+      best_times: {}, best_endless: 0,
+    };
+
+    const data    = snap.exists() ? snap.data() : defaults;
+    const current = data.multiplayer_rating || 1000;
+
+    // Draw: no rating change, no win/loss increment
+    const delta     = isDraw ? 0 : (win ? 25 : -20);
     const newRating = Math.max(0, current + delta);
-    await updateDoc(statsRef, {
+
+    const update = {
       multiplayer_rating: newRating,
-      wins:    snap.data().wins    + (win ? 1 : 0),
-      losses:  snap.data().losses  + (win ? 0 : 1),
-      total_matches: snap.data().total_matches + 1,
-    });
+      total_matches: (data.total_matches || 0) + 1,
+    };
+    if (!isDraw) {
+      update.wins   = (data.wins   || 0) + (win ? 1 : 0);
+      update.losses = (data.losses || 0) + (win ? 0 : 1);
+    }
+
+    if (snap.exists()) {
+      await updateDoc(statsRef, update);
+    } else {
+      const { setDoc } = await import('https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js');
+      await setDoc(statsRef, { ...defaults, ...update });
+    }
+
     setState('stats.multiplayer_rating', newRating);
   } catch(e) {
     console.warn('Rating update failed:', e.message);
