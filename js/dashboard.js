@@ -9,9 +9,9 @@ import {
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
 
-import { db }                             from './firebase.js?v=1778246870';
-import { getState, setState }             from './state_manager.js?v=1778246870';
-import { renderStats, renderLeaderboard, showToast } from './ui_manager.js?v=1778246870';
+import { db }                             from './firebase.js?v=1778247069';
+import { getState, setState }             from './state_manager.js?v=1778247069';
+import { renderStats, renderLeaderboard, showToast } from './ui_manager.js?v=1778247069';
 
 // ── Load full dashboard data ───────────────────────────────
 
@@ -29,7 +29,7 @@ export async function loadDashboard() {
     } catch(e) { console.warn('Stats load failed:', e.message); }
   }
 
-  // Load leaderboard (top 10 by wins, accessible to all)
+  // Load leaderboard (top 15 by wins, accessible to all)
   loadLeaderboard();
 }
 
@@ -68,7 +68,7 @@ async function loadLeaderboard() {
     }));
 
     const currentUid = getState('user')?.uid;
-    const { renderLeaderboard: render } = await import('./ui_manager.js?v=1778246870');
+    const { renderLeaderboard: render } = await import('./ui_manager.js?v=1778247069');
     render(entries, currentUid);
 
     if (window.lucide) window.lucide.createIcons();
