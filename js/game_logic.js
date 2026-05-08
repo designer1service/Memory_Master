@@ -11,10 +11,10 @@ import {
   collection, addDoc,
 } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
 
-import { db }                                            from './firebase.js?v=1778247069';
-import { getState, setState, resetGameState }            from './state_manager.js?v=1778247069';
-import { showScreen, updateHUD, showResults, showToast } from './ui_manager.js?v=1778247069';
-import { saveGameResult }                                from './dashboard.js?v=1778247069';
+import { db }                                            from './firebase.js?v=1778247763';
+import { getState, setState, resetGameState }            from './state_manager.js?v=1778247763';
+import { showScreen, updateHUD, showResults, showToast } from './ui_manager.js?v=1778247763';
+import { saveGameResult }                                from './dashboard.js?v=1778247763';
 
 // ── Icon pool ──────────────────────────────────────────────
 
