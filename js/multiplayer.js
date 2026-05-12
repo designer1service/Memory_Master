@@ -455,6 +455,13 @@ async function resolveMPMatch(matchRef, data, board, flipped, uid) {
     const ability   = (data.pair_abilities && data.pair_abilities[pairIndex])
                       || getAbilityForPair(pairIndex);
 
+    // last pair - only damage and heal
+    const isLastPair = newPairs >= data.total_pairs;
+    const allowedOnLast = ['damage', 'heal'];
+    const effectiveAbility = isLastPair && !allowedOnLast.includes(ability)
+      ? null
+      : ability;
+
     let p1 = { ...data.player1 };
     let p2 = { ...data.player2 };
     // Default: after a match turn passes to opponent.
