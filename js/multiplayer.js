@@ -12,15 +12,15 @@ import {
   query, where, getDocs,
 } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
 
-import { db, auth }                                  from './firebase.js?v=1778247763';
-import { getState, setState, resetMultiplayerState } from './state_manager.js?v=1778247763';
-import { generateBoard }                             from './game_logic.js?v=1778247763';
+import { db, auth }                                  from './firebase.js?v=1778594569';
+import { getState, setState, resetMultiplayerState } from './state_manager.js?v=1778594569';
+import { generateBoard }                             from './game_logic.js?v=1778594569';
 import {
   showScreen, showToast, updateHPBar,
   updateTurnIndicator, showAbilityToast,
   showResults, showCoinFlip, renderAbilityLog,
-} from './ui_manager.js?v=1778247763';
-import { updateMultiplayerRating }                   from './dashboard.js?v=1778247763';
+} from './ui_manager.js?v=1778594569';
+import { updateMultiplayerRating }                   from './dashboard.js?v=1778594569';
 
 // ── Ability definitions ────────────────────────────────────
 const ABILITIES = ['damage','heal','extra_turn','reveal_card'];
@@ -96,7 +96,7 @@ export async function createRoom() {
 
   setState('multiplayer', { matchId, roomCode: code, isHost: true, playerId: user.uid });
 
-  const { showRoomCode } = await import('./ui_manager.js?v=1778247763');
+  const { showRoomCode } = await import('./ui_manager.js?v=1778594569');
   showRoomCode(code);
   subscribeToMatch(matchId);
 }
@@ -526,10 +526,10 @@ if (opponent.hp <= 0 && self.hp <= 0) {
   // I ran out of HP (shouldn't happen in match branch, but guard it)
   status = 'finished';
   winner = oppUid;
-} else if (newPairs >= data.totalpairs) {
+} else if (newPairs >= data.total_pairs) {
   // All pairs found — both players alive, decide by pairs count
-  const myPairs  = (data.pairsfoundp1 || 0) + (isP1 ? 1 : 0);
-  const oppPairs = (data.pairsfoundp2 || 0) + (isP1 ? 0 : 1);
+  const myPairs  = (data.pairs_found_p1 || 0) + (isP1 ? 1 : 0);
+  const oppPairs = (data.pairs_found_p2 || 0) + (isP1 ? 0 : 1);
 
   if (myPairs > oppPairs) {
     status = 'finished';
