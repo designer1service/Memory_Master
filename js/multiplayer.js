@@ -472,7 +472,7 @@ async function resolveMPMatch(matchRef, data, board, flipped, uid) {
     const whoName = isP1 ? p1.username : p2.username;
     let newLogEntry = null;
 
-    // Apply ability
+// Apply ability
     if (effectiveAbility === 'damage') {
       if (isP1) p2.hp = Math.max(0, p2.hp - 25);
       else      p1.hp = Math.max(0, p1.hp - 25);
@@ -491,7 +491,6 @@ async function resolveMPMatch(matchRef, data, board, flipped, uid) {
       showAbilityToast('reveal', '👁 Card revealed!');
       newLogEntry = { type: 'reveal', who: whoName, text: 'revealed card' };
       // Pass currently flipped indices so we don't reveal the same cards
-      revealRandomCard(board, flipped);
     }
 
     // Build updated ability_log (prepend newest, keep last 5) — written to Firestore
