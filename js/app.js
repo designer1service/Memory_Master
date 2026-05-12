@@ -4,11 +4,11 @@
 // ═══════════════════════════════════════════════════════════
 
 import { initAuthObserver,
-         handleLogin, handleRegister, handleGuest, handleLogout } from './auth.js?v=1778247763';
-import { startGame, pauseGame, resumeGame, endGame }              from './game_logic.js?v=1778247763';
-import { createRoom, joinRoom, leaveMatch }                        from './multiplayer.js?v=1778247763';
-import { showScreen, showToast, toggleTheme }                     from './ui_manager.js?v=1778247763';
-import { getState, resetGameState, resetMultiplayerState }        from './state_manager.js?v=1778247763';
+         handleLogin, handleRegister, handleGuest, handleLogout } from './auth.js?v=1778595091';
+import { startGame, pauseGame, resumeGame, endGame }              from './game_logic.js?v=1778595091';
+import { createRoom, joinRoom, leaveMatch }                        from './multiplayer.js?v=1778595091';
+import { showScreen, showToast, toggleTheme }                     from './ui_manager.js?v=1778595091';
+import { getState, resetGameState, resetMultiplayerState }        from './state_manager.js?v=1778595091';
 
 // ─── Init ────────────────────────────────────────────────
 
