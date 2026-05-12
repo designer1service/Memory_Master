@@ -7,15 +7,15 @@ Developed as a university final thesis project at FERIT Osijek, University of Os
 
 ## Features
 
-- **6 Game Modes** — Easy (4×3), Medium (4×4), Hard (5×4), Hardcore (6×5), Endless, and 1v1 Multiplayer
-- **Real-time Multiplayer** — Room codes, HP system, match abilities (damage, heal, extra turn, reveal)
-- **Firebase Auth** — Email/password login, registration, and guest play
-- **Leaderboard** — Live top-10 leaderboard via Firestore
-- **Best Time Tracking** — Per-mode personal records
-- **Linear-inspired UI** — Dark surfaces, Inter font, accent #5e6ad2, CSS 3D card flips
+- **6 Game Modes** - Easy (4×3), Medium (4×4), Hard (5×4), Hardcore (6×5), Endless, and 1v1 Multiplayer
+- **Real-time Multiplayer** - Room codes, HP system, match abilities (damage, heal, extra turn, reveal)
+- **Firebase Auth** - Email/password login, registration, and guest play
+- **Leaderboard** - Live top-10 leaderboard via Firestore
+- **Best Time Tracking** - Per-mode personal records
+- **Linear-inspired UI** - Dark surfaces, Inter font, accent #5e6ad2, CSS 3D card flips
 - **Light/Dark Theme Toggle**
-- **Fully Responsive** — 375px → 1440px, touch-friendly (min 44px targets)
-- **No frameworks, no build tools** — pure ES modules
+- **Fully Responsive** - 375px → 1440px, touch-friendly (min 44px targets)
+- **No frameworks, no build tools** - pure ES modules
 
 ---
 
@@ -43,7 +43,7 @@ memory_master/
 ├── firestore.rules         # Firestore security rules
 └── .github/
     └── workflows/
-        └── firebase-deploy.yml  # CI/CD — auto-deploy on push to main
+        └── firebase-deploy.yml  # CI/CD - auto-deploy on push to main
 ```
 
 ---
@@ -128,7 +128,7 @@ multiplayer_index/{matchId}
 
 ### Singleplayer
 - **Fisher-Yates shuffle** for card randomisation
-- **Two-card flip limit** — third click blocked until pair resolves
+- **Two-card flip limit** - third click blocked until pair resolves
 - **Wrong match**: cards flip back after 1000ms; Endless mode -2s penalty
 - **Best time** tracked per difficulty on win
 - **Endless**: board clears → new shuffled board + 10s bonus; wrong match = -2s; game ends when timer hits 0
@@ -137,12 +137,12 @@ multiplayer_index/{matchId}
 - **HP System**: both players start at 100 HP
 - **Wrong match**: -10 HP, turn switches
 - **Match ability** (cycles per pair found):
-  - `damage` — deal 50 HP to opponent
-  - `heal` — restore 30 HP
-  - `extra_turn` — keep your turn
-  - `reveal_card` — briefly reveal a random unmatched card
-- **Win condition**: opponent HP reaches 0, or you match all pairs first
-- **Inactivity**: 60s timeout on current turn → opponent wins
+  - `damage` - deal 25 HP to opponent
+  - `heal` - restore 20 HP
+  - `extra_turn` - keep your turn
+  - `reveal_card` - briefly reveal a random unmatched card
+- **Win condition**: opponent HP reaches 0, or you match more pairs first
+- **Inactivity**: 30s timeout on current turn → opponent wins
 - **Real-time sync** via Firestore `onSnapshot`
 
 ---
@@ -189,10 +189,10 @@ npx serve memory_master
 ## Author
 
 Developed by a student at **FERIT** (Faculty of Electrical Engineering, Computing and Information Technology),  
-**University of Osijek**, Croatia — as a final thesis project.
+**University of Osijek**, Croatia - as a final thesis project.
 
 ---
 
 ## License
 
-MIT — free to use, modify, and distribute.
+MIT - free to use, modify, and distribute.
