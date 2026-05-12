@@ -498,44 +498,47 @@ async function resolveMPMatch(matchRef, data, board, flipped, uid) {
     if (isP1) p1.player_moves = (data.player1_moves || 0) + 1;
     else      p2.player_moves = (data.player2_moves || 0) + 1;
 
-    // Always use explicit uid references — never rely on isP1 for winner assignment
-    const myUid  = uid;
-    const oppUid = isP1 ? data.player2.uid : data.player1.uid;
-    const self     = isP1 ? p1 : p2;
-    const opponent = isP1 ? p2 : p1;
+// Always use explicit uid references — never rely on isP1 for winner assignment
+const myUid  = uid;
+const oppUid = isP1 ? data.player2.uid : data.player1.uid;
+const self     = isP1 ? p1 : p2;
+const opponent = isP1 ? p2 : p1;
 
-    let status = 'active';
-    let winner = null;
+let status = 'active';
+let winner = null;
 
-    if (opponent.hp <= 0 && self.hp <= 0) {
-      // Both at 0 HP simultaneously — treat as draw
-      status = 'finished';
-      winner = 'draw';
-    } else if (opponent.hp <= 0) {
-      // Opponent out of HP — I win
-      status = 'finished';
-      winner = myUid;
-    } else if (self.hp <= 0) {
-      // I ran out of HP (shouldn't happen in match branch, but guard it)
-      status = 'finished';
-      winner = oppUid;
-    } else if (newPairs >= data.total_pairs) {
-      // All pairs found — both players alive, decide by pairs count
-      const myPairs  = (data.pairs_found_p1 || 0) + (isP1 ? 1 : 0);
-      const oppPairs = (data.pairs_found_p2 || 0) + (isP1 ? 0 : 1);
-      if (myPairs > oppPairs) {
-        status = 'finished'; winner = myUid;
-      } else if (oppPairs > myPairs) {
-        status = 'finished'; winner = oppUid;
-      } else {
-        // Equal pairs — HP tie-breaker
-        status = 'finished';
-        if (self.hp > opponent.hp)      winner = myUid;
-        else if (opponent.hp > self.hp) winner = oppUid;
-        else                            winner = 'draw';
-      }
-    }
-    const deadlineMs = status === 'active' ? Date.now() + 30_000 : null;
+if (opponent.hp <= 0 && self.hp <= 0) {
+  // Both at 0 HP simultaneously — treat as draw
+  status = 'finished';
+  winner = 'draw';
+} else if (opponent.hp <= 0) {
+  // Opponent out of HP — I win
+  status = 'finished';
+  winner = myUid;
+} else if (self.hp <= 0) {
+  // I ran out of HP (shouldn't happen in match branch, but guard it)
+  status = 'finished';
+  winner = oppUid;
+} else if (newPairs >= data.totalpairs) {
+  // All pairs found — both players alive, decide by pairs count
+  const myPairs  = (data.pairsfoundp1 || 0) + (isP1 ? 1 : 0);
+  const oppPairs = (data.pairsfoundp2 || 0) + (isP1 ? 0 : 1);
+
+  if (myPairs > oppPairs) {
+    status = 'finished';
+    winner = myUid;
+  } else if (oppPairs > myPairs) {
+    status = 'finished';
+    winner = oppUid;
+  } else {
+    // Equal pairs — HP tie-breaker
+    status = 'finished';
+    if (self.hp > opponent.hp)      winner = myUid;
+    else if (opponent.hp > self.hp) winner = oppUid;
+    else                            winner = 'draw';
+  }
+}
+const deadlineMs = status === 'active' ? Date.now() + 30000 : null;
 
     // If reveal_card ability: show a random card to BOTH players via Firestore showing
     let revealShowing = [];
