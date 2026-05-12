@@ -473,21 +473,21 @@ async function resolveMPMatch(matchRef, data, board, flipped, uid) {
     let newLogEntry = null;
 
     // Apply ability
-    if (ability === 'damage') {
+    if (effectiveAbility === 'damage') {
       if (isP1) p2.hp = Math.max(0, p2.hp - 25);
       else      p1.hp = Math.max(0, p1.hp - 25);
       showAbilityToast('damage', '⚡ Deal 25 damage!');
       newLogEntry = { type: 'damage', who: whoName, text: 'dealt 25 dmg' };
-    } else if (ability === 'heal') {
+    } else if (effectiveAbility === 'heal') {
       if (isP1) p1.hp = Math.min(100, p1.hp + 20);
       else      p2.hp = Math.min(100, p2.hp + 20);
       showAbilityToast('heal', '💚 Healed 20 HP!');
       newLogEntry = { type: 'heal', who: whoName, text: 'healed 20 HP' };
-    } else if (ability === 'extra_turn') {
+    } else if (effectiveAbility === 'extra_turn') {
       nextTurn = uid; // Only here does the active player keep the turn
       showAbilityToast('extra', '🔁 Extra turn!');
       newLogEntry = { type: 'extra', who: whoName, text: 'extra turn' };
-    } else if (ability === 'reveal_card') {
+    } else if (effectiveAbility === 'reveal_card') {
       showAbilityToast('reveal', '👁 Card revealed!');
       newLogEntry = { type: 'reveal', who: whoName, text: 'revealed card' };
       // Pass currently flipped indices so we don't reveal the same cards
@@ -549,7 +549,7 @@ const deadlineMs = status === 'active' ? Date.now() + 30000 : null;
 
     // If reveal_card ability: show a random card to BOTH players via Firestore showing
     let revealShowing = [];
-    if (ability === 'reveal_card') {
+    if (effectiveAbility  === 'reveal_card') {
       const revIdx = revealRandomCard(board, flipped);
       if (revIdx !== null) revealShowing = [revIdx];
     }
