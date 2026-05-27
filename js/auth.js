@@ -21,12 +21,12 @@ import {
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
 
-import { auth, db }                               from './firebase.js?v=1779902096';
-import { getState, setState }                     from './state_manager.js?v=1779902096';
+import { auth, db }                               from './firebase.js?v=1779903083';
+import { getState, setState }                     from './state_manager.js?v=1779903083';
 import { showScreen, showToast, updateNavUser,
          setButtonLoading, showFormError,
-         clearFormError, renderStats }            from './ui_manager.js?v=1779902096';
-import { loadDashboard }                          from './dashboard.js?v=1779902096';
+         clearFormError, renderStats }            from './ui_manager.js?v=1779903083';
+import { loadDashboard }                          from './dashboard.js?v=1779903083';
 
 // ── Auth State Observer ────────────────────────────────────
 
@@ -110,7 +110,7 @@ async function tryReconnectToMatch(uid) {
       console.log('[Reconnect] Rejoining match:', matchId);
       const { renderMultiplayerBoard, subscribeToMatch,
               startTurnCountdown, setLastSeen } =
-        await import('./multiplayer.js?v=1779902096');
+        await import('./multiplayer.js?v=1779903083');
 
       setState('multiplayer', {
         matchId,

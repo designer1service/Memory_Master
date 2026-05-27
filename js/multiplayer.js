@@ -12,15 +12,15 @@ import {
   query, where, getDocs,
 } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
 
-import { db, auth }                                  from './firebase.js?v=1779902096';
-import { getState, setState, resetMultiplayerState } from './state_manager.js?v=1779902096';
-import { generateBoard }                             from './game_logic.js?v=1779902096';
+import { db, auth }                                  from './firebase.js?v=1779903083';
+import { getState, setState, resetMultiplayerState } from './state_manager.js?v=1779903083';
+import { generateBoard }                             from './game_logic.js?v=1779903083';
 import {
   showScreen, showToast, updateHPBar,
   updateTurnIndicator, showAbilityToast,
   showResults, showCoinFlip, renderAbilityLog,
-} from './ui_manager.js?v=1779902096';
-import { updateMultiplayerRating }                   from './dashboard.js?v=1779902096';
+} from './ui_manager.js?v=1779903083';
+import { updateMultiplayerRating }                   from './dashboard.js?v=1779903083';
 
 // ── Ability definitions ────────────────────────────────────
 const ABILITIES = ['damage','heal','extra_turn','reveal_card'];
@@ -88,7 +88,7 @@ export async function createRoom() {
     ability_log:      [],
     player1_moves:    0,
     player2_moves:    0,
-    match_start_time: null, // set to Date.now() when player2 joins
+    match_start_time: Date.now(), // fallback; joinRoom resets this when game actually starts
     turn_deadline:    null,
     resolve_at:       null,
   };
@@ -102,7 +102,7 @@ export async function createRoom() {
 
   setState('multiplayer', { matchId, roomCode: code, isHost: true, playerId: user.uid });
 
-  const { showRoomCode } = await import('./ui_manager.js?v=1779902096');
+  const { showRoomCode } = await import('./ui_manager.js?v=1779903083');
   showRoomCode(code);
   subscribeToMatch(matchId);
 }
@@ -580,7 +580,7 @@ if (opponent.hp <= 0 && self.hp <= 0) {
 const deadlineMs = status === 'active' ? Date.now() + 30000 : null;
 
     // Compute match duration if finished (so both players see exact same time)
-    const matchDurationSec = (status === 'finished' && data.match_start_time)
+    const matchDurationSec = status === 'finished'
       ? Math.round((Date.now() - data.match_start_time) / 1000)
       : 0;
 
@@ -667,7 +667,7 @@ const deadlineMs = status === 'active' ? Date.now() + 30000 : null;
     const deadlineMs = status === 'active' ? Date.now() + 30_000 : null;
 
     // Compute match duration if finished
-    const matchDurationSec = (status === 'finished' && data.match_start_time)
+    const matchDurationSec = status === 'finished'
       ? Math.round((Date.now() - data.match_start_time) / 1000)
       : 0;
 
@@ -817,8 +817,16 @@ function handleMatchEnd(data, uid) {
   const isP1   = data.player1?.uid === uid;
   updateMultiplayerRating(win, isDraw);
 
-  // Elapsed time in seconds — use pre-computed match_duration if available
-  const elapsedSec = data.match_duration ?? 0;
+  // Elapsed time in seconds — use pre-computed match_duration if available,
+  // otherwise compute from match_start_time (fallback for old matches)
+  let elapsedSec = 0;
+  if (data.match_duration != null && data.match_duration > 0) {
+    elapsedSec = data.match_duration;
+  } else if (data.match_start_time) {
+    elapsedSec = Math.round((Date.now() - data.match_start_time) / 1000);
+  } else if (data.created_at?.toMillis) {
+    elapsedSec = Math.round((Date.now() - data.created_at.toMillis()) / 1000);
+  }
 
   // Per-player stats
   const myMoves  = isP1 ? (data.player1_moves || 0) : (data.player2_moves || 0);
