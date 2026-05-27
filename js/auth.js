@@ -21,12 +21,12 @@ import {
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
 
-import { auth, db }                               from './firebase.js?v=1779900306';
-import { getState, setState }                     from './state_manager.js?v=1779900306';
+import { auth, db }                               from './firebase.js?v=1779902096';
+import { getState, setState }                     from './state_manager.js?v=1779902096';
 import { showScreen, showToast, updateNavUser,
          setButtonLoading, showFormError,
-         clearFormError, renderStats }            from './ui_manager.js?v=1779900306';
-import { loadDashboard }                          from './dashboard.js?v=1779900306';
+         clearFormError, renderStats }            from './ui_manager.js?v=1779902096';
+import { loadDashboard }                          from './dashboard.js?v=1779902096';
 
 // ── Auth State Observer ────────────────────────────────────
 
@@ -110,7 +110,7 @@ async function tryReconnectToMatch(uid) {
       console.log('[Reconnect] Rejoining match:', matchId);
       const { renderMultiplayerBoard, subscribeToMatch,
               startTurnCountdown, setLastSeen } =
-        await import('./multiplayer.js?v=1779900306');
+        await import('./multiplayer.js?v=1779902096');
 
       setState('multiplayer', {
         matchId,
@@ -210,6 +210,7 @@ export async function handleRegister() {
   const username = document.getElementById('reg-username')?.value?.trim();
   const email    = document.getElementById('reg-email')?.value?.trim();
   const password = document.getElementById('reg-password')?.value;
+  const confirm  = document.getElementById('reg-password-confirm')?.value;
 
   clearFormError('register-error');
   if (!username || username.length < 2) {
@@ -222,6 +223,10 @@ export async function handleRegister() {
   }
   if (!password || password.length < 6) {
     showFormError('register-error', 'Password must be at least 6 characters.');
+    return;
+  }
+  if (password !== confirm) {
+    showFormError('register-error', 'Passwords do not match.');
     return;
   }
 

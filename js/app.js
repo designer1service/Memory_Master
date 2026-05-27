@@ -4,11 +4,11 @@
 // ═══════════════════════════════════════════════════════════
 
 import { initAuthObserver,
-         handleLogin, handleRegister, handleGuest, handleLogout } from './auth.js?v=1779900306';
-import { startGame, pauseGame, resumeGame, endGame }              from './game_logic.js?v=1779900306';
-import { createRoom, joinRoom, leaveMatch }                        from './multiplayer.js?v=1779900306';
-import { showScreen, showToast, toggleTheme }                     from './ui_manager.js?v=1779900306';
-import { getState, resetGameState, resetMultiplayerState }        from './state_manager.js?v=1779900306';
+         handleLogin, handleRegister, handleGuest, handleLogout } from './auth.js?v=1779902096';
+import { startGame, pauseGame, resumeGame, endGame }              from './game_logic.js?v=1779902096';
+import { createRoom, joinRoom, leaveMatch }                        from './multiplayer.js?v=1779902096';
+import { showScreen, showToast, toggleTheme }                     from './ui_manager.js?v=1779902096';
+import { getState, resetGameState, resetMultiplayerState }        from './state_manager.js?v=1779902096';
 
 // ─── Init ────────────────────────────────────────────────
 
@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
   ['login-email','login-password'].forEach(id => {
     getEl(id)?.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleLogin(); });
   });
-  ['reg-username','reg-email','reg-password'].forEach(id => {
+  ['reg-username','reg-email','reg-password','reg-password-confirm'].forEach(id => {
     getEl(id)?.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleRegister(); });
   });
   getEl('guest-name')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleGuest(); });
