@@ -12,15 +12,15 @@ import {
   query, where, getDocs,
 } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
 
-import { db, auth }                                  from './firebase.js?v=1778595091';
-import { getState, setState, resetMultiplayerState } from './state_manager.js?v=1778595091';
-import { generateBoard }                             from './game_logic.js?v=1778595091';
+import { db, auth }                                  from './firebase.js?v=1779900306';
+import { getState, setState, resetMultiplayerState } from './state_manager.js?v=1779900306';
+import { generateBoard }                             from './game_logic.js?v=1779900306';
 import {
   showScreen, showToast, updateHPBar,
   updateTurnIndicator, showAbilityToast,
   showResults, showCoinFlip, renderAbilityLog,
-} from './ui_manager.js?v=1778595091';
-import { updateMultiplayerRating }                   from './dashboard.js?v=1778595091';
+} from './ui_manager.js?v=1779900306';
+import { updateMultiplayerRating }                   from './dashboard.js?v=1779900306';
 
 // ── Ability definitions ────────────────────────────────────
 const ABILITIES = ['damage','heal','extra_turn','reveal_card'];
@@ -40,6 +40,12 @@ function generateRoomCode() {
 export async function createRoom() {
   const user = getState('user');
   if (!user) { showToast('You must be signed in to play multiplayer.', 'error'); return; }
+
+  // Reset per-match guards so a new match starts clean
+  _matchEndedId     = null;
+  _lastSeenTurn     = null;
+  _lastSeenDeadline = null;
+  _coinFlipShown    = false;
 
   const code    = generateRoomCode();
   const matchId = `mp_${code}_${Date.now()}`;
@@ -96,7 +102,7 @@ export async function createRoom() {
 
   setState('multiplayer', { matchId, roomCode: code, isHost: true, playerId: user.uid });
 
-  const { showRoomCode } = await import('./ui_manager.js?v=1778595091');
+  const { showRoomCode } = await import('./ui_manager.js?v=1779900306');
   showRoomCode(code);
   subscribeToMatch(matchId);
 }
@@ -105,6 +111,12 @@ export async function createRoom() {
 export async function joinRoom(code) {
   const user = getState('user');
   if (!user) { showToast('You must be signed in to play multiplayer.', 'error'); return; }
+
+  // Reset per-match guards so a new match starts clean
+  _matchEndedId     = null;
+  _lastSeenTurn     = null;
+  _lastSeenDeadline = null;
+  _coinFlipShown    = false;
 
   const normalised = code.trim().toUpperCase();
   if (normalised.length !== 6) { return 'invalid'; }
@@ -146,6 +158,7 @@ export async function joinRoom(code) {
     current_turn:  coinWinner,
     first_turn:    coinWinner,
     turn_deadline: deadlineMs,
+    match_start_time: Date.now(), // reset timer to actual game start (not room creation)
     last_action_timestamp: serverTimestamp(),
   });
 
@@ -431,11 +444,32 @@ async function resolveMPMatch(matchRef, data, board, flipped, uid) {
   const c1 = board[i1];
   const c2 = board[i2];
 
+  // Guard: cards already resolved by opponent while we were waiting
+  if (!c1 || !c2 || c1.matched || c2.matched) {
+    _localShowing.clear();
+    _mpLocked = false;
+    return;
+  }
+
   // Guard: uid must match one of the two players, otherwise abort
   const isP1 = data.player1.uid === uid;
   const isP2 = data.player2.uid === uid;
   if (!isP1 && !isP2) {
     console.warn('[resolveMPMatch] uid does not match either player, aborting', uid);
+    _localShowing.clear();
+    _mpLocked = false;
+    return;
+  }
+
+  // Guard: don't overwrite a finished/aborted match
+  if (data.status === 'finished' || data.status === 'aborted') {
+    _localShowing.clear();
+    _mpLocked = false;
+    return;
+  }
+
+  // Guard: it's still this player's turn
+  if (data.current_turn !== uid) {
     _localShowing.clear();
     _mpLocked = false;
     return;
@@ -450,7 +484,6 @@ async function resolveMPMatch(matchRef, data, board, flipped, uid) {
 
     const newPairs  = (data.pairs_found || 0) + 1;
     const pairIndex = newPairs - 1;
-    // Use pre-assigned ability from Firestore (randomised at room creation)
     // Fall back to cycling ABILITIES[] if field missing (old matches)
     const ability   = (data.pair_abilities && data.pair_abilities[pairIndex])
                       || getAbilityForPair(pairIndex);
@@ -609,8 +642,22 @@ const deadlineMs = status === 'active' ? Date.now() + 30000 : null;
     const oppUid2 = isP1 ? data.player2.uid : data.player1.uid;
     const nextTurn   = oppUid2;
     const selfHp     = isP1 ? p1.hp : p2.hp;
-    const status     = selfHp <= 0 ? 'finished' : 'active';
-    const winner     = selfHp <= 0 ? oppUid2 : null; // I lost HP, opponent wins
+    const opponentHp = isP1 ? p2.hp : p1.hp;
+
+    let status, winner;
+    if (selfHp <= 0 && opponentHp <= 0) {
+      status = 'finished';
+      winner = 'draw';
+    } else if (selfHp <= 0) {
+      status = 'finished';
+      winner = oppUid2;
+    } else if (opponentHp <= 0) {
+      status = 'finished';
+      winner = myUid2;
+    } else {
+      status = 'active';
+      winner = null;
+    }
     const deadlineMs = status === 'active' ? Date.now() + 30_000 : null;
 
     await updateDoc(matchRef, {
@@ -719,7 +766,8 @@ function handleMatchEnd(data, uid) {
 
   // Reset flags so next match starts clean
   _coinFlipShown = false;
-  _matchEndedId  = null;
+  // Keep _matchEndedId set until a new match begins (prevents late snapshots from re-triggering)
+  // It will be reset in createRoom / joinRoom.
 
   // Clear any pending observer flip timers
   Object.keys(_observerFlipTimers).forEach(k => { clearTimeout(_observerFlipTimers[k]); delete _observerFlipTimers[k]; });

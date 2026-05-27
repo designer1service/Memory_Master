@@ -86,6 +86,8 @@ export function setState(path, update) {
 
 /** Reset game state for a new session */
 export function resetGameState() {
+  const current = getState('game');
+  if (current.timerInterval) clearInterval(current.timerInterval);
   setState('game', {
     mode: null,
     sessionId: null,
