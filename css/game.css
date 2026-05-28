@@ -669,8 +669,7 @@
   .results-title { font-size: 1.6rem; }
   .results-actions { flex-direction: column; }
   .lobby-grid { flex-direction: column; }
-  /* Turn indicator: stack pill + timer on mobile */
-  .turn-indicator { flex-direction: column; gap: 2px; padding: 8px 8px 4px; }
+  .turn-indicator { padding: 8px 8px 4px; }
   .turn-timer { font-size: 0.78rem; }
 
   /* Na portrait mobileu (visina > širina) — koristi visinu kao bottleneck */
