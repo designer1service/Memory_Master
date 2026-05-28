@@ -12,15 +12,15 @@ import {
   query, where, getDocs,
 } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
 
-import { db, auth }                                  from './firebase.js?v=1779903083';
-import { getState, setState, resetMultiplayerState } from './state_manager.js?v=1779903083';
-import { generateBoard }                             from './game_logic.js?v=1779903083';
+import { db, auth }                                  from './firebase.js?v=1779964377';
+import { getState, setState, resetMultiplayerState } from './state_manager.js?v=1779964377';
+import { generateBoard }                             from './game_logic.js?v=1779964377';
 import {
   showScreen, showToast, updateHPBar,
   updateTurnIndicator, showAbilityToast,
   showResults, showCoinFlip, renderAbilityLog,
-} from './ui_manager.js?v=1779903083';
-import { updateMultiplayerRating }                   from './dashboard.js?v=1779903083';
+} from './ui_manager.js?v=1779964377';
+import { updateMultiplayerRating }                   from './dashboard.js?v=1779964377';
 
 // ── Ability definitions ────────────────────────────────────
 const ABILITIES = ['damage','heal','extra_turn','reveal_card'];
@@ -102,7 +102,7 @@ export async function createRoom() {
 
   setState('multiplayer', { matchId, roomCode: code, isHost: true, playerId: user.uid });
 
-  const { showRoomCode } = await import('./ui_manager.js?v=1779903083');
+  const { showRoomCode } = await import('./ui_manager.js?v=1779964377');
   showRoomCode(code);
   subscribeToMatch(matchId);
 }
@@ -560,8 +560,8 @@ if (opponent.hp <= 0 && self.hp <= 0) {
   winner = oppUid;
 } else if (newPairs >= data.total_pairs) {
   // All pairs found — both players alive, decide by pairs count
-  const myPairs  = (data.pairs_found_p1 || 0) + (isP1 ? 1 : 0);
-  const oppPairs = (data.pairs_found_p2 || 0) + (isP1 ? 0 : 1);
+  const myPairs  = (isP1 ? (data.pairs_found_p1 || 0) : (data.pairs_found_p2 || 0)) + 1;
+  const oppPairs =  isP1 ? (data.pairs_found_p2 || 0) : (data.pairs_found_p1 || 0);
 
   if (myPairs > oppPairs) {
     status = 'finished';

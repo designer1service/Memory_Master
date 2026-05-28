@@ -3,7 +3,7 @@
 // Screen routing, toasts, animations, theme, particles
 // ═══════════════════════════════════════════════════════════
 
-import { getState, setState } from './state_manager.js?v=1779903083';
+import { getState, setState } from './state_manager.js?v=1779964377';
 
 // ── Screen Management ──────────────────────────────────────
 
