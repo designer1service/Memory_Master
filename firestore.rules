@@ -36,13 +36,18 @@ service cloud.firestore {
     }
 
     // Multiplayer index: for room-code lookups
-    // Any authenticated user can read and update (needed for player2 to mark status=active)
-    // Only creator can create their own index doc
+    // Any authenticated user can read; updates are restricted to prevent
+    // redirecting room codes to different matches.
+    // Only creator can create their own index doc.
     match /multiplayer_index/{matchId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null
         && request.resource.data.created_by == request.auth.uid;
-      allow update: if request.auth != null;
+      // Allow status updates (e.g. waiting → active when player2 joins)
+      // but lock match_id and room_code so nobody can hijack lookups.
+      allow update: if request.auth != null
+        && request.resource.data.match_id == resource.data.match_id
+        && request.resource.data.room_code == resource.data.room_code;
       allow delete: if false;
     }
   }
