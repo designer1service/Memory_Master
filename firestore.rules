@@ -29,7 +29,8 @@ service cloud.firestore {
         && request.resource.data.multiplayer_rating <= 5000;
 
       // Updates: counters can only increment by at most 1 per write,
-      // rating can only change by ±25 (max single ELO delta).
+      // rating can only change by ±50 (max accumulated ELO delta per write).
+      // Note: Firestore Rules has no Math.abs(), so we split into two checks.
       allow update: if request.auth.uid == userId
         && request.resource.data.wins is int
         && request.resource.data.wins >= 0
@@ -43,7 +44,8 @@ service cloud.firestore {
         && request.resource.data.multiplayer_rating is int
         && request.resource.data.multiplayer_rating >= 0
         && request.resource.data.multiplayer_rating <= 5000
-        && Math.abs(request.resource.data.multiplayer_rating - resource.data.multiplayer_rating) <= 50;
+        && (request.resource.data.multiplayer_rating - resource.data.multiplayer_rating) <= 50
+        && (resource.data.multiplayer_rating - request.resource.data.multiplayer_rating) <= 50;
     }
 
     // Singleplayer sessions: owner-only
