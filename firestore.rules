@@ -9,9 +9,41 @@ service cloud.firestore {
     }
 
     // Stats: any signed-in user can read; only owner can write
+    // Numeric counters are bounded server-side to prevent cheating via direct
+    // Firestore writes from the browser console (e.g. wins: 999999).
     match /stats/{userId} {
       allow read: if request.auth != null;
-      allow write: if request.auth.uid == userId;
+
+      // First-time creation (no existing doc). Counters are capped at 1
+      // because the only legitimate first write is ensureUserDocs (all 0)
+      // or the first game result (1 win or 1 loss, 1 total match).
+      allow create: if request.auth.uid == userId
+        && request.resource.data.wins is int
+        && request.resource.data.wins <= 1
+        && request.resource.data.losses is int
+        && request.resource.data.losses <= 1
+        && request.resource.data.total_matches is int
+        && request.resource.data.total_matches <= 1
+        && request.resource.data.multiplayer_rating is int
+        && request.resource.data.multiplayer_rating >= 0
+        && request.resource.data.multiplayer_rating <= 5000;
+
+      // Updates: counters can only increment by at most 1 per write,
+      // rating can only change by ±25 (max single ELO delta).
+      allow update: if request.auth.uid == userId
+        && request.resource.data.wins is int
+        && request.resource.data.wins >= 0
+        && request.resource.data.wins <= resource.data.wins + 1
+        && request.resource.data.losses is int
+        && request.resource.data.losses >= 0
+        && request.resource.data.losses <= resource.data.losses + 1
+        && request.resource.data.total_matches is int
+        && request.resource.data.total_matches >= 0
+        && request.resource.data.total_matches <= resource.data.total_matches + 1
+        && request.resource.data.multiplayer_rating is int
+        && request.resource.data.multiplayer_rating >= 0
+        && request.resource.data.multiplayer_rating <= 5000
+        && Math.abs(request.resource.data.multiplayer_rating - resource.data.multiplayer_rating) <= 50;
     }
 
     // Singleplayer sessions: owner-only
