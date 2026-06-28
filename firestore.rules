@@ -28,8 +28,12 @@ service cloud.firestore {
         resource == null ||
         // Player 1 (host) can always write
         resource.data.player1.uid == request.auth.uid ||
-        // Player 2 joining a waiting room (player2 is still null at this point)
-        resource.data.status == 'waiting' ||
+        // Player 2 joining a waiting room: must set themselves as player2
+        // and flip status to 'active' in the same write (prevents arbitrary
+        // writes to board_state, HP, current_turn while room is open)
+        (resource.data.status == 'waiting'
+          && request.resource.data.status == 'active'
+          && request.resource.data.player2.uid == request.auth.uid) ||
         // Player 2 already in the match
         (resource.data.player2 != null && resource.data.player2.uid == request.auth.uid)
       );
